@@ -208,7 +208,7 @@ def _send_task(db: Session, settings: Settings, task: dict[str, Any]) -> None:
     )
     sender_name = (
         "booknook"
-        if locale == "en-US" and config.from_name == "私人书库"
+        if locale == "en-US" and config.from_name == "一隅书架"
         else config.from_name
     )
     message["From"] = formataddr((sender_name, config.from_email))
@@ -217,7 +217,7 @@ def _send_task(db: Session, settings: Settings, task: dict[str, Any]) -> None:
     if locale == "en-US":
         message.set_content(f"“{book_title}” has been sent to Kindle by booknook.")
     else:
-        message.set_content(f"《{book_title}》已由私人书库发送至 Kindle。")
+        message.set_content(f"《{book_title}》已由一隅书架发送至 Kindle。")
     media_type = str(
         task.get("mimeType")
         or mimetypes.guess_type(path.name)[0]

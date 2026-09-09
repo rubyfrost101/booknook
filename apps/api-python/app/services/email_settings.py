@@ -127,7 +127,7 @@ def _normalized(values: dict[str, Any]) -> dict[str, Any]:
         "username": _header(values.get("username"), "SMTP 用户名"),
         "password": str(values.get("password") or ""),
         "fromEmail": _email(values.get("fromEmail"), "发件邮箱"),
-        "fromName": _header(values.get("fromName") or "私人书库", "发件名称"),
+        "fromName": _header(values.get("fromName") or "一隅书架", "发件名称"),
         "maxAttachmentMb": _max_attachment_mb(values.get("maxAttachmentMb")),
         "kindleEmail": _email(values.get("kindleEmail"), "Kindle 邮箱"),
     }
@@ -215,7 +215,7 @@ def smtp_connection_settings(values: dict[str, Any], *, require_sender: bool = T
         username=username,
         password=password,
         from_email=from_email,
-        from_name=_header(values.get("fromName") or "私人书库", "发件名称"),
+        from_name=_header(values.get("fromName") or "一隅书架", "发件名称"),
         max_attachment_mb=_max_attachment_mb(values.get("maxAttachmentMb")),
     )
 

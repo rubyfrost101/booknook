@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "私人书库 API"
+    app_name: str = "一隅书架 API"
     app_version: str = "0.1.0"
     session_secret: str | None = None
     storage_root: str = "/app/storage"

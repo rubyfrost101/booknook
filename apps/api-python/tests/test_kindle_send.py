@@ -54,7 +54,7 @@ def _prepare(
         "username": "sender@example.com",
         "password": "smtp-secret",
         "fromEmail": "sender@example.com",
-        "fromName": "私人书库",
+        "fromName": "一隅书架",
         "maxAttachmentMb": max_attachment_mb,
     }
     saved = client.put(
@@ -161,7 +161,7 @@ def test_email_settings_mask_password_test_connection_and_clear(
                 "username": "sender@example.com",
                 "password": "smtp-secret",
                 "fromEmail": "sender@example.com",
-                "fromName": "私人书库",
+                "fromName": "一隅书架",
             },
             "kindle": {"email": "reader_123@kindle.com"},
         },

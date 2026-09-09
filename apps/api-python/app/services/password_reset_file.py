@@ -32,10 +32,10 @@ def write_password_reset_file(settings: Settings, reset_url: str, locale: str = 
         description = "This link is valid for 30 minutes after creation and can only be used once."
         action = "Open booknook and set a new password"
     else:
-        document_title = "重置私人书库密码"
+        document_title = "重置一隅书架密码"
         heading = "重置密码"
         description = "此链接在创建后 30 分钟内有效，并且只能使用一次。"
-        action = "打开私人书库并设置新密码"
+        action = "打开一隅书架并设置新密码"
     document = f"""<!doctype html>
 <html lang="{resolved_locale}">
 <head>

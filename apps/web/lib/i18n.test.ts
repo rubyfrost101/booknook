@@ -71,7 +71,7 @@ test('nested application copy is translated before interpolation', () => {
 });
 
 test('brand metadata has a deliberate English translation', () => {
-  assert.equal(translateMessage('en-US', '私人书库'), 'booknook');
+  assert.equal(translateMessage('en-US', '一隅书架'), 'booknook');
   assert.equal(
     translateMessage('en-US', '自托管私人图书馆与沉浸阅读应用'),
     'A self-hosted private library and immersive reading app'

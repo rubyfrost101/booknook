@@ -38,7 +38,7 @@ type KindleSettingsPayload = {
 };
 
 const emptySettings: EmailSettings = {
-  smtp: { host: '', port: 587, security: 'starttls', username: '', fromEmail: '', fromName: '私人书库', maxAttachmentMb: null, passwordConfigured: false },
+  smtp: { host: '', port: 587, security: 'starttls', username: '', fromEmail: '', fromName: '一隅书架', maxAttachmentMb: null, passwordConfigured: false },
   kindle: { email: '' }
 };
 
@@ -222,7 +222,7 @@ export function EmailSettingsPage() {
               <label className="text-sm font-medium text-[#5E5953]"><I18nText>SMTP 用户名</I18nText><input disabled={loading} value={smtp.username} onChange={(event) => setSmtp({ ...smtp, username: event.target.value })} autoComplete="username" placeholder={i18nAttribute("无需认证时留空")} className={inputClassName()} /></label>
               <label className="text-sm font-medium text-[#5E5953]"><I18nText>SMTP 密码</I18nText><input disabled={loading || clearPassword} value={smtp.password} onChange={(event) => { setSmtp({ ...smtp, password: event.target.value }); setClearPassword(false); }} type="password" autoComplete="new-password" placeholder={settings.smtp.passwordConfigured ? i18nAttribute("已配置，留空表示不修改") : i18nAttribute("无需认证时留空")} className={inputClassName()} /></label>
               <label className="text-sm font-medium text-[#5E5953]"><I18nText>发件邮箱</I18nText><input disabled={loading} value={smtp.fromEmail} onChange={(event) => setSmtp({ ...smtp, fromEmail: event.target.value })} type="email" placeholder="reader@example.com" className={inputClassName()} /></label>
-              <label className="text-sm font-medium text-[#5E5953]"><I18nText>发件名称</I18nText><input disabled={loading} value={smtp.fromName} onChange={(event) => setSmtp({ ...smtp, fromName: event.target.value })} placeholder={i18nAttribute("私人书库")} className={inputClassName()} /></label>
+              <label className="text-sm font-medium text-[#5E5953]"><I18nText>发件名称</I18nText><input disabled={loading} value={smtp.fromName} onChange={(event) => setSmtp({ ...smtp, fromName: event.target.value })} placeholder={i18nAttribute("一隅书架")} className={inputClassName()} /></label>
             </div>
             {settings.smtp.passwordConfigured ? (
               <button type="button" onClick={() => { setClearPassword((value) => !value); setSmtp({ ...smtp, password: '' }); }} className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#A34A36] hover:text-[#D94322]"><Trash2 size={15} />{clearPassword ? i18nAttribute("取消清除 SMTP 密码") : i18nAttribute("保存时清除 SMTP 密码")}</button>

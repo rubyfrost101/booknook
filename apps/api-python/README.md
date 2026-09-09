@@ -1,6 +1,6 @@
-# 私人书库 Python API
+# 一隅书架 Python API
 
-私人书库的 Python FastAPI backend and import worker. Docker deployments run this service together with the Next.js frontend in the unified `web` image.
+一隅书架的 Python FastAPI backend and import worker. Docker deployments run this service together with the Next.js frontend in the unified `web` image.
 
 SQLite is the only database. It is created automatically at `STORAGE_ROOT/database/booknook.sqlite3`; no database connection settings are required.
 

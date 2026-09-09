@@ -16,7 +16,7 @@ from app.modules.metadata.public import BUILTIN_MANIFESTS
 LOGGER = logging.getLogger(__name__)
 
 SYSTEM_SETTING_SEEDS: tuple[tuple[str, str], ...] = (
-    ("systemName", "私人书库"),
+    ("systemName", "一隅书架"),
     ("language", DEFAULT_LOCALE),
     (
         "workDetail.tabOrder",

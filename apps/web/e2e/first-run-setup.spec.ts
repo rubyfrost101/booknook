@@ -80,7 +80,7 @@ test('an uninitialized installation opens the account setup wizard', async ({ pa
   await expect(folderPath).toHaveValue('/monitor');
   await page.getByRole('button', { name: '添加并继续' }).click();
 
-  await expect(page.getByRole('heading', { name: '你的私人书库已准备好' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '你的一隅书架已准备好' })).toBeVisible();
   await expect(page.getByText(/监控文件夹已启用/)).toBeVisible();
   await expect(page.getByText(/owner@example.com/)).toBeVisible();
   await expect(page.getByRole('button', { name: '进入书库' })).toBeVisible();

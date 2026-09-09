@@ -21,9 +21,9 @@ body:
     id: environment
     attributes:
       label: 系统版本和运行环境
-      description: 请填写服务端系统、CPU 架构、浏览器或客户端，以及私人书库版本。
+      description: 请填写服务端系统、CPU 架构、浏览器或客户端，以及一隅书架版本。
       placeholder: |
-        私人书库版本：例如 v1.2.3
+        一隅书架版本：例如 v1.2.3
         服务端系统：例如 fnOS 0.9 / Ubuntu 24.04
         CPU 架构：例如 amd64 / arm64
         浏览器或客户端：例如 Chrome 126 / iOS PWA

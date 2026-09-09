@@ -4150,7 +4150,7 @@
     "response_shape_ok": true,
     "database_changes": {},
     "note": "读取邮件设置。",
-    "response_excerpt": "{\"ok\":true,\"data\":{\"smtp\":{\"host\":\"\",\"port\":587,\"security\":\"starttls\",\"username\":\"\",\"fromEmail\":\"\",\"fromName\":\"私人书库\",\"maxAttachmentMb\":null,\"passwordConfigured\":false},\"kindle\":{\"email\":\"\"}}}"
+    "response_excerpt": "{\"ok\":true,\"data\":{\"smtp\":{\"host\":\"\",\"port\":587,\"security\":\"starttls\",\"username\":\"\",\"fromEmail\":\"\",\"fromName\":\"一隅书架\",\"maxAttachmentMb\":null,\"passwordConfigured\":false},\"kindle\":{\"email\":\"\"}}}"
   },
   {
     "module": "kindle",

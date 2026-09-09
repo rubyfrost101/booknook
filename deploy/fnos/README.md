@@ -1,8 +1,8 @@
 # fnOS 应用包
 
-这个目录是私人书库的 fnOS Docker 应用模板。它与仓库根目录的原生 Docker Compose 部署相互独立，二者使用同一个生产镜像。fnOS 包通过独立宿主端口提供 Web 服务，不注册统一网关路径或 Unix Socket。
+这个目录是一隅书架的 fnOS Docker 应用模板。它与仓库根目录的原生 Docker Compose 部署相互独立，二者使用同一个生产镜像。fnOS 包通过独立宿主端口提供 Web 服务，不注册统一网关路径或 Unix Socket。
 
-应用由 rubyfrost101 维护，项目主页为 [rubyfrost101/booknook](https://github.com/rubyfrost101/booknook)。私人书库支持 EPUB、漫画、PDF、文本读物和有声书的导入、整理、检索与沉浸阅读，适合部署在家庭 NAS 上集中管理个人藏书并跨设备访问。
+应用由 rubyfrost101 维护，项目主页为 [rubyfrost101/booknook](https://github.com/rubyfrost101/booknook)。一隅书架支持 EPUB、漫画、PDF、文本读物和有声书的导入、整理、检索与沉浸阅读，适合部署在家庭 NAS 上集中管理个人藏书并跨设备访问。
 
 有声书支持单个 M4B、M4A、MP3 以及多分轨音频导入，提供章节与轨道切换、倍速、音量、睡眠定时、跨页面连续播放和独立进度同步。
 
@@ -57,7 +57,7 @@ fnOS 安装向导只收集访问端口，端口通过 `wizard_port` 注入 Compo
 
 使用登录页的“忘记密码”后，应用会在 fnOS 共享书库目录中创建 `reset-password.html`。在文件管理器中打开该文件并点击链接，即可设置新密码。
 
-安装完成后，在私人书库设置页添加 `/monitor` 作为监控文件夹。应用会递归扫描放入 `/booknook.monitor` 共享目录的读物。
+安装完成后，在一隅书架设置页添加 `/monitor` 作为监控文件夹。应用会递归扫描放入 `/booknook.monitor` 共享目录的读物。
 
 ## 原生 Docker Compose
 

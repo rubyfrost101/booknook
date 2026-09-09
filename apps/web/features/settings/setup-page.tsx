@@ -244,7 +244,7 @@ export function SetupPage() {
           ) : stage === 'complete' ? (
             <div className="flex min-h-[430px] flex-col items-start justify-center" aria-live="polite">
               <span className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-[#8B9D83] text-[#E8DCC7]"><Check size={28} strokeWidth={2.4} /></span>
-              <h1 className="mt-7 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl"><I18nText>你的私人书库已准备好</I18nText></h1>
+              <h1 className="mt-7 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl"><I18nText>你的一隅书架已准备好</I18nText></h1>
               <p className="mt-4 text-sm leading-7 text-[#606C38]/80">{i18nAttribute('管理账户 {value0} 已创建并登录。', { value0: email })}{folderAdded ? i18nAttribute("监控文件夹已启用，系统会自动识别目录中已有和以后新增的读物。") : i18nAttribute("你可以稍后在设置中添加监控文件夹。")}</p>
               <button type="button" onClick={() => { window.localStorage.removeItem(setupProgressKey); router.replace('/library'); router.refresh(); }} className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#C66B3D] px-6 text-sm font-semibold text-[#E8DCC7] transition hover:bg-[#B08B6E] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#8B9D83]/40">
                 <I18nText>进入书库 </I18nText><ArrowRight size={17} />

@@ -197,7 +197,7 @@ def test_empty_storage_bootstraps_complete_sqlite_database(tmp_path) -> None:
             )
             assert settings_rows == {
                 "language": "zh-CN",
-                "systemName": "私人书库",
+                "systemName": "一隅书架",
                 "workDetail.tabOrder": '["EBOOK", "COMIC", "AUDIOBOOK", "STRUCTURE"]',
             }
             sources = connection.execute(

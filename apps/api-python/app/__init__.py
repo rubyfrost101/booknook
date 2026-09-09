@@ -1,1 +1,1 @@
-"""私人书库 Python backend package."""
+"""一隅书架 Python backend package."""

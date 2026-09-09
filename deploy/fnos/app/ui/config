@@ -1,7 +1,7 @@
 {
   ".url": {
     "booknook.main": {
-      "title": "私人书库",
+      "title": "一隅书架",
       "icon": "images/icon_v2_{0}.png",
       "type": "url",
       "protocol": "http",

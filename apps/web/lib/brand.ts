@@ -1,4 +1,4 @@
-export const PRODUCT_NAME = '私人书库';
+export const PRODUCT_NAME = '一隅书架';
 export const PRODUCT_DESCRIPTION = '自托管私人图书馆与沉浸阅读应用';
 export const PRODUCT_TAGLINE = '存你所藏，随时可读';
 export const DEFAULT_ACCOUNT_AVATAR_PATH = '/icons/icon-192.png';

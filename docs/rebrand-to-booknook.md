@@ -1,4 +1,4 @@
-# 品牌改名开发文档：私人书库(booknook) → booknook / 私人书库
+# 品牌改名开发文档：一隅书架(booknook) → booknook / 一隅书架
 
 > 本文档是本仓库重新品牌化（re-brand）的唯一执行规范。所有内容替换、镜像发布、飞牛打包、GitHub 上传均按本文档执行。改动前请先通读本表。所有「新文本」基于已核对的实际源码。
 
@@ -7,13 +7,13 @@
 | 决策项 | 结论 |
 |--------|------|
 | 新英文项目标识 / 仓库名 | `booknook` |
-| 新中文产品名（替换「私人书库」） | `私人书库` |
+| 新中文产品名（替换「一隅书架」） | `一隅书架` |
 | 改名彻底程度 | 彻底改（含 npm scope、移动端标识、运行时路径、fnOS 应用标识） |
 | Docker 镜像 | `rubyfrost101/booknook` → `rubyfrost101/booknook`（自行构建推送，**仓库名统一为 `booknook`**） |
 | 历史 release-notes | 清空重来，从 v0.1.0 开始 |
 | 目标 GitHub 仓库 | `rubyfrost101/booknook`（重新 init 干净仓库、去除原作者历史与 submodule） |
 | 移动端 bundle id | `com.rubyfrost101.booknook` → `com.rubyfrost101.booknook` |
-| 移动端 App 显示名 | `私人书库` → `私人书库` |
+| 移动端 App 显示名 | `一隅书架` → `一隅书架` |
 | fnOS 应用标识 | `booknook` → `booknook`（appname + 用户/组/项目/导航名联动，见 §3.4） |
 | fnOS 共享扫描目录 | `booknook.monitor` → `booknook.monitor` |
 | commit 作者身份 | 统一为 `rubyfrost101`（现本地 git 身份为 appleAngels，需改） |
@@ -30,7 +30,7 @@
 | 3 | `com.rubyfrost101.booknook` | `com.rubyfrost101.booknook` | mobile app.json: ios bundleIdentifier / android package |
 | 4 | `BookNook` | `BookNook` | HTTP User-Agent（organize_service.py） |
 | 5 | `@booknook/` | `@booknook/` | npm workspace scope（packages 内 import 引用、lockfile） |
-| 6 | `私人书库` | `私人书库` | mobile app.json `expo.name` |
+| 6 | `一隅书架` | `一隅书架` | mobile app.json `expo.name` |
 | 7 | `booknook` | `booknook` | **镜像仓库名一致性**：publish-docker-hub.sh 里 `build_image "booknook"` 与 echo |
 | 8 | `booknook` | `booknook` | mobile slug/scheme、expo-private-file-system.ts 私有根目录 |
 | 9 | `booknook` | `booknook` | docker compose 容器名 |
@@ -42,7 +42,7 @@
 | 15 | `booknook` | `booknook` | compose 项目名、fnOS appname、打包目录名、.fpk 文件名、cmd/project label |
 | 16 | `rubyfrost101` | `rubyfrost101` | 作者 GitHub 账号（URL、workflow filter） |
 | 17 | `booknook.monitor` | `booknook.monitor` | fnOS 共享扫描目录（resource/wizard deploy README/build 断言） |
-| 18 | `私人书库` | `私人书库` | 中文产品名（manifest/ui config/wizard/README/brand.ts/i18n） |
+| 18 | `一隅书架` | `一隅书架` | 中文产品名（manifest/ui config/wizard/README/brand.ts/i18n） |
 | 19 | `Ermao Books` / `20 cents` | `Private Library` | 英文文案字面量（i18n en-US） |
 | 20 | `书库主`（残余） | `书库主`（按语境） | 用户名默认值 / 测试夹具 / Kindle 文案 |
 | 21 | 兜底 `booknook` | `booknook` | 其余独立标识符（preference key、版本快照名等） |
@@ -53,12 +53,12 @@
 
 ### 3.1 纯展示 / 品牌文案（低风险，量大）
 - `apps/web/lib/brand.ts` — `PRODUCT_NAME`、`PRODUCT_DESCRIPTION`、`PRODUCT_TAGLINE` 重写（原 "和书库主一起，安静读书" → 建议 "存你所藏，随时可读"）
-- `README.md` / `README.en.md` — 标题 `# 私人书库（booknook)` → `# 私人书库（booknook)`；安装说明镜像/项目名/容器名；`pnpm --filter @booknook/web` → `@booknook/web`；作者/维护者信息
-- `apps/api-python/README.md` — 标题与正文「私人书库」→「私人书库」；`booknook.sqlite3`→`booknook.sqlite3`
-- `.github/ISSUE_TEMPLATE/bug_report_zh.yml` — 「私人书库」→「私人书库」
-- `apps/web/i18n/messages/en-US.json` — Kindle 邮件「私人书库」→「私人书库」、"Ermao Books"/"20 cents"→"Private Library"
-- `apps/api-python/app/services/email_settings.py` — `fromName` 默认「私人书库」→「私人书库」
-- `apps/api-python/app/services/kindle_queue.py` — 发件名称与文案「私人书库」→「私人书库」；en-US 分支判断字面量同步
+- `README.md` / `README.en.md` — 标题 `# 一隅书架（booknook)` → `# 一隅书架（booknook)`；安装说明镜像/项目名/容器名；`pnpm --filter @booknook/web` → `@booknook/web`；作者/维护者信息
+- `apps/api-python/README.md` — 标题与正文「一隅书架」→「一隅书架」；`booknook.sqlite3`→`booknook.sqlite3`
+- `.github/ISSUE_TEMPLATE/bug_report_zh.yml` — 「一隅书架」→「一隅书架」
+- `apps/web/i18n/messages/en-US.json` — Kindle 邮件「一隅书架」→「一隅书架」、"Ermao Books"/"20 cents"→"Private Library"
+- `apps/api-python/app/services/email_settings.py` — `fromName` 默认「一隅书架」→「一隅书架」
+- `apps/api-python/app/services/kindle_queue.py` — 发件名称与文案「一隅书架」→「一隅书架」；en-US 分支判断字面量同步
 - `apps/web/components/layout/app-shell.tsx` — 默认用户名「书库主」→「书库主」（与 §2#20 一致）
 
 ### 3.2 代码 / 部署标识（中风险，改了影响构建）
@@ -67,7 +67,7 @@
 - `scripts/publish-docker-hub.sh` — 第 8 行 `NAMESPACE="${DOCKERHUB_NAMESPACE:-${IMAGE_NAMESPACE:-rubyfrost101}}"`、`--namespace`/usage 默认 `rubyfrost101`、`build_image "booknook"` 与两处 echo 的镜像名（统一 `booknook`）
 - `scripts/build-fnos-package.sh` — `IMAGE_REFERENCE="rubyfrost101/booknook:${APP_VERSION}"`、`PACKAGE_DIR="$BUILD_ROOT/booknook"`、maintainer/distributor（六面体→rubyfrost101）、output `booknook-${APP_VERSION}-all.fpk`，以及**校验断言**（含 `/booknook.monitor`、`projects booknook`、`label=com.docker.compose.project=booknook` 等强断言的预期值同步为新名）
 - `apps/api-python/app/services/organize_service.py` — User-Agent `BookNook/0.1`→`BookNook/0.1`、GMD 链接→新仓库
-- `apps/mobile/app.json` — `expo.name`（私人书库→私人书库）、`slug`/`scheme`→`booknook`、`bundleIdentifier`/`package`→`com.rubyfrost101.booknook`
+- `apps/mobile/app.json` — `expo.name`（一隅书架→一隅书架）、`slug`/`scheme`→`booknook`、`bundleIdentifier`/`package`→`com.rubyfrost101.booknook`
 - `apps/mobile/src/shared/files/expo-private-file-system.ts` — `booknook`→`booknook`
 
 ### 3.3 npm workspace scope（仅 3 个包，已核实）
@@ -78,13 +78,13 @@
 
 ### 3.4 fnOS 打包（强联动，全部要一起改才过构建）
 `appname=booknook` → `booknook` 会连带以下**同值**同步，缺一打包失败：
-- `deploy/fnos/manifest` — `appname=booknook`→`booknook`、`display_name=私人书库`→`私人书库`、`maintainer/distributor=六面体`→`rubyfrost101`、`maintainer_url/distributor_url`→`github.com/rubyfrost101/booknook`、`desktop_applaunchname=booknook.main`→`booknook.main`、`desc` 与 `changelog` 中「私人书库」+B站/QQ群文案替换
+- `deploy/fnos/manifest` — `appname=booknook`→`booknook`、`display_name=一隅书架`→`一隅书架`、`maintainer/distributor=六面体`→`rubyfrost101`、`maintainer_url/distributor_url`→`github.com/rubyfrost101/booknook`、`desktop_applaunchname=booknook.main`→`booknook.main`、`desc` 与 `changelog` 中「一隅书架」+B站/QQ群文案替换
 - `deploy/fnos/config/privilege` — `username`/`groupname` `booknook`→`booknook`
 - `deploy/fnos/config/resource` — `name: "booknook"`→`"booknook"`；共享目录 `name: "booknook.monitor"`→`"booknook.monitor"`（若保留旧共享目录名，则 #17 不改但 `booknook` 破残留，建议彻底改）
-- `deploy/fnos/app/ui/config` — 桌面图标 key `booknook.main`→`booknook.main`、`title` 私人书库→私人书库
+- `deploy/fnos/app/ui/config` — 桌面图标 key `booknook.main`→`booknook.main`、`title` 一隅书架→一隅书架
 - `deploy/fnos/cmd/main` — `--filter "label=com.docker.compose.project=booknook"`→`...project=booknook`
-- `deploy/fnos/wizard/install`、`wizard/upgrade` — 「初始化/升级私人书库」→私人书库；「/booknook.monitor」→「/booknook.monitor」（3 个 JSON 均为严格 JSON，**无注释**）
-- `deploy/fnos/README.md` — 文中「私人书库」「六面体/ＧＭＤ」「rubyfrost101」镜像、「booknook.monitor」全部同步
+- `deploy/fnos/wizard/install`、`wizard/upgrade` — 「初始化/升级一隅书架」→一隅书架；「/booknook.monitor」→「/booknook.monitor」（3 个 JSON 均为严格 JSON，**无注释**）
+- `deploy/fnos/README.md` — 文中「一隅书架」「六面体/ＧＭＤ」「rubyfrost101」镜像、「booknook.monitor」全部同步
 
 ### 3.5 历史 release（按决策清空）
 - 删除 `release-notes/v0.1.25.md ~ v0.5.1.md`
@@ -114,7 +114,7 @@
 ```bash
 # 残留名称检查（应接近 0；目录名与已生成产物除外）
 grep -rn --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.venv \
-  -e "rubyfrost101" -e "rubyfrost101" -e "ermao" -e "@booknook" -e "书库主" -e "私人书库" \
+  -e "rubyfrost101" -e "rubyfrost101" -e "ermao" -e "@booknook" -e "书库主" -e "一隅书架" \
   apps packages deploy scripts docker-compose*.yml 2>/dev/null
 
 # JS/TS 质量门禁
@@ -165,12 +165,12 @@ pnpm fnos:build      # 或 scripts/build-fnos-package.sh，内部已用新 IMAGE
 
 ## 9. 最终验收清单
 
-- [ ] `grep` 残留旧名（rubyfrost101/GMD/ermao/@booknook/书库主/私人书库）无业务代码命中
+- [ ] `grep` 残留旧名（rubyfrost101/GMD/ermao/@booknook/书库主/一隅书架）无业务代码命中
 - [ ] `docker-compose*.yml`、`.github/workflows/*`、`scripts/*`、`deploy/fnos/*` 全部指向新名
 - [ ] **publish 推送的镜像名（booknook）与 compose 拉取的一致**
 - [ ] fnOS 打包 5 处 `booknook` 联动（manifest/privilege/resource/ui/config/cmd/main）、`booknook.monitor→booknook.monitor`、build 脚本断言同步
 - [ ] `pnpm install` 后 lockfile 无旧 `@booknook` 报错；`pnpm lint / typecheck / i18n:check` 通过
-- [ ] mobile app.json：`name=私人书库`、`slug/scheme=booknook`、`bundle/package=com.rubyfrost101.booknook`
+- [ ] mobile app.json：`name=一隅书架`、`slug/scheme=booknook`、`bundle/package=com.rubyfrost101.booknook`
 - [ ] `release-notes` 清空，index 指向 `rubyfrost101/booknook`
 - [ ] git 为干净仓库（无原作者历史/submodule），commit 作者为 rubyfrost101，已推送 `rubyfrost101/booknook`
 - [ ] README 作者/群/链接已替换为你本人，LICENSE 保留 GPL-3.0

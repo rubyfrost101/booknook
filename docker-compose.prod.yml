@@ -12,7 +12,7 @@ services:
       PORT: 3000
       HOSTNAME: 0.0.0.0
     ports:
-      - "${WEB_PORT:-3000}:3000"
+      - "${WEB_PORT:-7209}:3000"
     volumes:
       - ${STORAGE_PATH:-./data/storage}:/app/storage
       - ${MONITOR_HOST_PATH:-./monitor}:/monitor

@@ -7,23 +7,23 @@ import {
 } from './server-address';
 
 test('normalizes a manually entered LAN address and defaults to HTTP', () => {
-  const parsed = parseServerAddress(' 192.168.1.20:3000/ ');
+  const parsed = parseServerAddress(' 192.168.1.20:7209/ ');
   assert.equal(parsed.ok, true);
   if (parsed.ok) {
-    assert.equal(parsed.baseUrl.value, 'http://192.168.1.20:3000');
+    assert.equal(parsed.baseUrl.value, 'http://192.168.1.20:7209');
     assert.equal(parsed.baseUrl.security, 'local-http');
     assert.equal(
       serverHealthUrl(parsed.baseUrl),
-      'http://192.168.1.20:3000/api/health',
+      'http://192.168.1.20:7209/api/health',
     );
   }
 });
 
 test('treats local hostnames with ports as addresses rather than URI schemes', () => {
-  const hostname = parseServerAddress('nas:3000');
+  const hostname = parseServerAddress('nas:7209');
   assert.equal(hostname.ok, true);
   if (hostname.ok) {
-    assert.equal(hostname.baseUrl.value, 'http://nas:3000');
+    assert.equal(hostname.baseUrl.value, 'http://nas:7209');
   }
 
   const multicastDns = parseServerAddress('books.local:8080/booknook/');
@@ -54,7 +54,7 @@ test('rejects public cleartext, device loopback, credentials and queries', () =>
     ok: false,
     code: 'INSECURE_REMOTE_NOT_ALLOWED',
   });
-  assert.deepEqual(parseServerAddress('http://127.0.0.1:3000'), {
+  assert.deepEqual(parseServerAddress('http://127.0.0.1:7209'), {
     ok: false,
     code: 'DEVICE_LOOPBACK_NOT_ALLOWED',
   });
@@ -74,7 +74,7 @@ test('accepts an HTTPS scheme case-insensitively', () => {
 });
 
 test('rejects an explicit unsupported URI scheme', () => {
-  assert.deepEqual(parseServerAddress('ftp://books.local:3000'), {
+  assert.deepEqual(parseServerAddress('ftp://books.local:7209'), {
     ok: false,
     code: 'UNSUPPORTED_SCHEME',
   });

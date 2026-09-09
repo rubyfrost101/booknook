@@ -159,8 +159,8 @@ for wizard_path in (install_wizard_path, upgrade_wizard_path, config_wizard_path
         steps = json.load(file)
     items = [item for step in steps for item in step.get("items", [])]
     port_item = next((item for item in items if item.get("field") == "wizard_port"), None)
-    if port_item is None or port_item.get("initValue") != "3000":
-        raise SystemExit(f"{wizard_path} must collect wizard_port with a 3000 default")
+    if port_item is None or port_item.get("initValue") != "7209":
+        raise SystemExit(f"{wizard_path} must collect wizard_port with a 7209 default")
     patterns = [rule.get("pattern") for rule in port_item.get("rules", []) if "pattern" in rule]
     if expected_pattern not in patterns:
         raise SystemExit(f"{wizard_path} does not constrain wizard_port to 1024-65535")
@@ -230,7 +230,7 @@ if ! cmp -s "$PACKAGE_DIR/ICON.PNG" "$PACKAGE_DIR/app/ui/images/icon_64.png" || 
 fi
 
 port_validation_log="$BUILD_ROOT/port-validation.log"
-for valid_port in 1024 3000 65535; do
+for valid_port in 1024 7209 65535; do
   wizard_port="$valid_port" TRIM_TEMP_LOGFILE="$port_validation_log" \
     bash "$PACKAGE_DIR/app/docker/validate-port.sh"
 done
@@ -261,7 +261,7 @@ if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; 
     TRIM_DATA_SHARE_PATHS="$validation_dir/library" \
     TRIM_UID=1000 \
     TRIM_GID=1000 \
-    wizard_port=3000 \
+    wizard_port=7209 \
       docker compose -f "$compose" config --services
   )"
   if [ "$services" != "web" ]; then

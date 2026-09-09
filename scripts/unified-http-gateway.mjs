@@ -111,7 +111,7 @@ function integerEnvironmentValue(name, fallback) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const listenHost = process.env.GATEWAY_HOST || '0.0.0.0';
-  const listenPort = integerEnvironmentValue('GATEWAY_PORT', 3000);
+  const listenPort = integerEnvironmentValue('GATEWAY_PORT', 7209);
   const server = createUnifiedGateway({
     apiHostname: process.env.API_HOST || '127.0.0.1',
     apiPort: integerEnvironmentValue('API_PORT', 8000),

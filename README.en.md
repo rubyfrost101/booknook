@@ -87,7 +87,7 @@ For command-line deployment, run this in the directory containing `compose.yaml`
 docker compose up -d
 ```
 
-When the installation is complete, open `http://your-server-address:3000`.
+When the installation is complete, open `http://your-server-address:7209`.
 
 Watched folders are selected from the in-app directory tree and are not limited to a fixed root. To expose additional host directories, add volume mappings such as `/srv/books:/libraries/books`; the container user must be able to read them.
 

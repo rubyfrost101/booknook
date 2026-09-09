@@ -34,7 +34,7 @@ test('persists a healthy server and reuses its profile after reconnecting', asyn
   );
 
   const first = await connect.execute({
-    candidate: '192.168.1.20:3000',
+    candidate: '192.168.1.20:7209',
     source: 'manual',
   });
   assert.equal(first.outcome, 'connected');
@@ -43,7 +43,7 @@ test('persists a healthy server and reuses its profile after reconnecting', asyn
   }
 
   const second = await connect.execute({
-    candidate: 'http://192.168.1.20:3000/',
+    candidate: 'http://192.168.1.20:7209/',
     source: 'qr',
   });
   assert.equal(second.outcome, 'connected');
@@ -86,7 +86,7 @@ test('does not persist a server that reports an unhealthy state', async () => {
   );
 
   const result = await connect.execute({
-    candidate: 'http://192.168.1.20:3000',
+    candidate: 'http://192.168.1.20:7209',
     source: 'manual',
   });
 

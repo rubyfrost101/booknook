@@ -16,7 +16,7 @@ import {
 
 const connection = {
   profileId: 'profile-000001',
-  baseUrl: 'http://192.168.1.20:3000',
+  baseUrl: 'http://192.168.1.20:7209',
 } as const;
 
 function epubProgress(

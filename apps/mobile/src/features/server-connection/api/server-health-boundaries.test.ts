@@ -11,7 +11,7 @@ import { parseServerAddress } from '../model/server-address';
 import { ServerHealthClient } from './server-health-client';
 
 function serverBaseUrl() {
-  const parsed = parseServerAddress('http://192.168.1.20:3000');
+  const parsed = parseServerAddress('http://192.168.1.20:7209');
   assert.equal(parsed.ok, true);
   if (!parsed.ok) {
     assert.fail('Expected a valid LAN server address');

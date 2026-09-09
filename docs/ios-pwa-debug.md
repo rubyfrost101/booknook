@@ -26,10 +26,10 @@ pnpm pwa:ios
 
 这个命令会先构建 Web，再以 production 模式启动完整本地服务栈。这样 service worker 会注册，登录和其他 `/api/...` 请求也会被代理到本机 Python API。
 
-iOS 真机访问局域网 HTTP 时，PWA 能力可能和真实安装场景不一致。推荐用 HTTPS 隧道把本机 3000 暴露出去：
+iOS 真机访问局域网 HTTP 时，PWA 能力可能和真实安装场景不一致。推荐用 HTTPS 隧道把本机 7209 暴露出去：
 
 ```bash
-cloudflared tunnel --url http://localhost:3000
+cloudflared tunnel --url http://localhost:7209
 ```
 
 在 iPhone Safari 打开隧道给出的 `https://...` 地址，加上调试参数：

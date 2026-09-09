@@ -98,7 +98,7 @@ Expo SDK、React Native、React 和所有原生模块都必须固定在 lockfile
 ```text
 https://books.example.com
 https://nas.example.com/apps/booknook
-http://192.168.1.20:3000
+http://192.168.1.20:7209
 ```
 
 Reader v2 返回的文件、音轨和页面地址保持相对 URL，由当前 server profile 解析。不得改成绝对 URL，否则会破坏反向代理和 base path 部署。
@@ -742,7 +742,7 @@ Mobile 首期拥有自己的消息目录与门禁，不从 `apps/web/i18n` 深�
 - server/user 切换清空内存 cache 并取消 in-flight request；
 - 每个资源操作继续由服务端执行资源级授权。
 
-真实公开入口 smoke 必须经过端口 3000/反向代理，验证：
+真实公开入口 smoke 必须经过端口 7209/反向代理，验证：
 
 ```text
 Authorization
@@ -1087,7 +1087,7 @@ pnpm --filter @booknook/web build
 - repository：真实 Expo SQLite/文件目录；
 - component：交互、可访问性、双语；
 - E2E：Maestro；
-- smoke：公开端口 3000/反向代理；
+- smoke：公开端口 7209/反向代理；
 - 真机：内存、音频、后台、下载、网络切换。
 
 ### 18.2 最小设备
@@ -1154,7 +1154,7 @@ pnpm --filter @booknook/web build
 | 后台下载不可靠 | 持久状态机；验证后决定自有 Expo Module |
 | 后台音频平台差异 | M0 验证；M10 中断/锁屏/回收测试 |
 | Bearer cache 串用户 | `Vary: Cookie, Authorization` + 两用户合同矩阵 |
-| 反代丢 Range/Authorization | 公开 3000 入口 smoke |
+| 反代丢 Range/Authorization | 公开 7209 入口 smoke |
 | Web/Mobile 纯规则漂移 | 两消费者后再提取；合同测试；禁止深导入 |
 | API 生成物漂移 | Mobile 独立 generation + CI diff |
 | 离线文件串账号 | `instanceId + userId + fingerprint` 命名空间 |

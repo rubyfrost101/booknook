@@ -145,7 +145,7 @@ pnpm fnos:validate
 
 生产环境使用单个统一镜像，同时运行：
 
-- Next.js Web（公开端口 `3000`）
+- Next.js Web（公开端口 `7209`）
 - FastAPI API（容器内 `127.0.0.1:8000`）
 - Python 导入/监控 Worker
 

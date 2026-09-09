@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const baseUrl = process.env.ACCEPTANCE_BASE_URL ?? 'http://127.0.0.1:3000';
+const baseUrl = process.env.ACCEPTANCE_BASE_URL ?? 'http://127.0.0.1:7209';
 const email = process.env.ACCEPTANCE_EMAIL ?? 'acceptance@example.com';
 const password = process.env.ACCEPTANCE_PASSWORD ?? 'acceptance-password-123';
 let cookie = '';

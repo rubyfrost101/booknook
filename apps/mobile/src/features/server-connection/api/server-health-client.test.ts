@@ -21,7 +21,7 @@ class StubTransport implements JsonTransport {
 }
 
 function serverBaseUrl() {
-  const parsed = parseServerAddress('http://192.168.1.20:3000');
+  const parsed = parseServerAddress('http://192.168.1.20:7209');
   assert.equal(parsed.ok, true);
   if (!parsed.ok) {
     throw new Error('Test address must be valid');
@@ -44,7 +44,7 @@ test('recognizes a healthy BookNook server', async () => {
   assert.deepEqual(result, { outcome: 'healthy' });
   assert.equal(
     transport.request?.url,
-    'http://192.168.1.20:3000/api/health',
+    'http://192.168.1.20:7209/api/health',
   );
 });
 

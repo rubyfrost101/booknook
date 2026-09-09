@@ -14,7 +14,7 @@ function serverBaseUrl(candidate: string) {
 }
 
 test('keeps profile timestamps monotonic when the device clock moves backwards', () => {
-  const firstAddress = serverBaseUrl('http://192.168.1.20:3000');
+  const firstAddress = serverBaseUrl('http://192.168.1.20:7209');
   const secondAddress = serverBaseUrl('http://192.168.1.21:3000');
 
   const first = activateServerProfile(null, {

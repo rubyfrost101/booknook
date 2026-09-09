@@ -26,7 +26,7 @@
 | 优先级 | 旧文本 | 新文本 | 说明 / 实际落点 |
 |----|--------|--------|------|
 | 1 | `rubyfrost101/booknook` | `rubyfrost101/booknook` | 完整镜像引用（compose、build-fnos、workflow、deploy README） |
-| 2 | `rubyfrost101/booknook:develop` | `rubyfrost101/booknook:develop` | CI workflow（已被 #1 覆盖，可省略） |
+| 2 | `kylenge/booknook:develop` | `kylenge/booknook:develop` | CI workflow（已被 #1 覆盖，可省略） |
 | 3 | `com.rubyfrost101.booknook` | `com.rubyfrost101.booknook` | mobile app.json: ios bundleIdentifier / android package |
 | 4 | `BookNook` | `BookNook` | HTTP User-Agent（organize_service.py） |
 | 5 | `@booknook/` | `@booknook/` | npm workspace scope（packages 内 import 引用、lockfile） |
@@ -65,7 +65,7 @@
 - `docker-compose.yml` / `docker-compose.prod.yml` — 项目名 `booknook`→`booknook`、镜像→`rubyfrost101/booknook`、容器名→`booknook`
 - `.github/workflows/fnos-package.yml`、`.github/workflows/mobile.yml` — 镜像 tags/images、`@booknook/*` filter→`@booknook/*`
 - `scripts/publish-docker-hub.sh` — 第 8 行 `NAMESPACE="${DOCKERHUB_NAMESPACE:-${IMAGE_NAMESPACE:-rubyfrost101}}"`、`--namespace`/usage 默认 `rubyfrost101`、`build_image "booknook"` 与两处 echo 的镜像名（统一 `booknook`）
-- `scripts/build-fnos-package.sh` — `IMAGE_REFERENCE="rubyfrost101/booknook:${APP_VERSION}"`、`PACKAGE_DIR="$BUILD_ROOT/booknook"`、maintainer/distributor（六面体→rubyfrost101）、output `booknook-${APP_VERSION}-all.fpk`，以及**校验断言**（含 `/booknook.monitor`、`projects booknook`、`label=com.docker.compose.project=booknook` 等强断言的预期值同步为新名）
+- `scripts/build-fnos-package.sh` — `IMAGE_REFERENCE="kylenge/booknook:${APP_VERSION}"`、`PACKAGE_DIR="$BUILD_ROOT/booknook"`、maintainer/distributor（六面体→rubyfrost101）、output `booknook-${APP_VERSION}-all.fpk`，以及**校验断言**（含 `/booknook.monitor`、`projects booknook`、`label=com.docker.compose.project=booknook` 等强断言的预期值同步为新名）
 - `apps/api-python/app/services/organize_service.py` — User-Agent `BookNook/0.1`→`BookNook/0.1`、GMD 链接→新仓库
 - `apps/mobile/app.json` — `expo.name`（一隅书架→一隅书架）、`slug`/`scheme`→`booknook`、`bundleIdentifier`/`package`→`com.rubyfrost101.booknook`
 - `apps/mobile/src/shared/files/expo-private-file-system.ts` — `booknook`→`booknook`
@@ -150,8 +150,8 @@ curl -s http://localhost:3000/api/health    # {"ok":true}
 DOCKERHUB_USERNAME=rubyfrost101 DOCKERHUB_TOKEN=**** ./scripts/publish-docker-hub.sh --tag prod
 
 # 方式 B（手动 build + push）
-docker build -t rubyfrost101/booknook:latest .
-docker push rubyfrost101/booknook:latest
+docker build -t kylenge/booknook:latest .
+docker push kylenge/booknook:latest
 ```
 
 > 镜像未推送前 `docker-compose up` 会拉取失败；本地开发走 `pnpm dev:test`（不用 Docker）不受影响。

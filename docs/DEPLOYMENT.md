@@ -8,7 +8,7 @@
 curl -fsSL https://raw.githubusercontent.com/rubyfrost101/booknook/main/docker-compose.prod.yml | docker compose -f - up -d
 ```
 
-生产发布后不需要在部署机下载代码，也不需要安装 Node.js / pnpm。远端 compose 会直接拉取 `rubyfrost101/booknook:prod`；统一应用容器内同时运行 Next.js Web、Python FastAPI API 和 Python Worker，Python API 启动时自动初始化数据库 schema 和基础数据。
+生产发布后不需要在部署机下载代码，也不需要安装 Node.js / pnpm。远端 compose 会直接拉取 `kylenge/booknook:prod`；统一应用容器内同时运行 Next.js Web、Python FastAPI API 和 Python Worker，Python API 启动时自动初始化数据库 schema 和基础数据。
 
 第一次试运行可以直接使用默认值启动；正式部署请通过 `.env` 或一行命令里的 `env ... sh -c 'curl ... | docker compose -f - up -d'` 覆盖：
 

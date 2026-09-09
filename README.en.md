@@ -48,14 +48,14 @@ DRM-protected Kindle files are not supported.
 
 ## Docker Compose Installation (Recommended)
 
-The production image supports both `linux/amd64` and `linux/arm64`. Docker automatically pulls the image for your device architecture. When the latest release tag matching the root `package.json` is published, the versioned image, `rubyfrost101/booknook:prod`, and `rubyfrost101/booknook:latest` are updated together. Copy the complete configuration below into your NAS Docker Compose manager, or save it as `compose.yaml` and deploy it:
+The production image supports both `linux/amd64` and `linux/arm64`. Docker automatically pulls the image for your device architecture. When the latest release tag matching the root `package.json` is published, the versioned image, `kylenge/booknook:prod`, and `kylenge/booknook:latest` are updated together. Copy the complete configuration below into your NAS Docker Compose manager, or save it as `compose.yaml` and deploy it:
 
 ```yaml
 name: booknook
 
 services:
   web:
-    image: rubyfrost101/booknook:prod
+    image: kylenge/booknook:prod
     pull_policy: always
     container_name: booknook
     restart: unless-stopped

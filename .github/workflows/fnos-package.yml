@@ -137,8 +137,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            rubyfrost101/booknook:prod
-            rubyfrost101/booknook:latest
+            kylenge/booknook:prod
+            kylenge/booknook:latest
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -177,7 +177,7 @@ jobs:
           target: runner
           platforms: linux/amd64
           push: true
-          tags: rubyfrost101/booknook:develop
+          tags: kylenge/booknook:develop
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -269,7 +269,7 @@ jobs:
         id: docker_meta
         uses: docker/metadata-action@v5
         with:
-          images: rubyfrost101/booknook
+          images: kylenge/booknook
           flavor: latest=false
           tags: |
             type=raw,value=${{ steps.version.outputs.app_version }}

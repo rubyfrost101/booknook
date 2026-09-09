@@ -2,7 +2,7 @@ name: booknook
 
 services:
   web:
-    image: rubyfrost101/booknook:prod
+    image: kylenge/booknook:prod
     pull_policy: always
     container_name: booknook
     restart: unless-stopped

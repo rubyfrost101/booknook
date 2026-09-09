@@ -2,7 +2,7 @@
 # 一隅书架（booknook）Docker 部署一键升级
 #
 # 原理：
-#   生产 compose 引用浮动镜像 "rubyfrost101/booknook:prod"，且 pull_policy: always，
+#   生产 compose 引用浮动镜像 "kylenge/booknook:prod"，且 pull_policy: always，
 #   因此升级只需拉取最新镜像并重建容器，数据（/app/storage、/monitor）全部保留，
 #   无需卸载、无需重新打包 fpk。
 #
@@ -26,7 +26,7 @@ if [ ! -f "$COMPOSE_FILE" ]; then
   exit 1
 fi
 
-echo "==> 拉取镜像 rubyfrost101/booknook:prod"
+echo "==> 拉取镜像 kylenge/booknook:prod"
 docker compose -f "$COMPOSE_FILE" -p "$STACK_NAME" pull web
 
 echo "==> 重建容器（数据卷保留）"

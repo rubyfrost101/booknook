@@ -51,14 +51,14 @@
 
 ## Docker Compose 安装（推荐）
 
-生产镜像同时支持 `linux/amd64` 和 `linux/arm64`，Docker 会根据设备架构自动拉取对应镜像。发布与根 `package.json` 匹配的最新版本标签时，会同步更新版本镜像、`rubyfrost101/booknook:prod` 和 `rubyfrost101/booknook:latest`。复制下面的完整内容，粘贴到 NAS 的 Docker Compose 管理器中，或保存为 `compose.yaml` 后部署：
+生产镜像同时支持 `linux/amd64` 和 `linux/arm64`，Docker 会根据设备架构自动拉取对应镜像。发布与根 `package.json` 匹配的最新版本标签时，会同步更新版本镜像、`kylenge/booknook:prod` 和 `kylenge/booknook:latest`。复制下面的完整内容，粘贴到 NAS 的 Docker Compose 管理器中，或保存为 `compose.yaml` 后部署：
 
 ```yaml
 name: booknook
 
 services:
   web:
-    image: rubyfrost101/booknook:prod
+    image: kylenge/booknook:prod
     pull_policy: always
     container_name: booknook
     restart: unless-stopped

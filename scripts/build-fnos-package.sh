@@ -4,7 +4,7 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATE_DIR="$ROOT_DIR/deploy/fnos"
 APP_VERSION="${APP_VERSION:-$(node -p "require('$ROOT_DIR/package.json').version")}"
-IMAGE_REFERENCE="rubyfrost101/booknook:${APP_VERSION}"
+IMAGE_REFERENCE="kylenge/booknook:${APP_VERSION}"
 FNPACK_BIN="${FNPACK_BIN:-fnpack}"
 VALIDATE_ONLY="${FNOS_VALIDATE_ONLY:-false}"
 OUTPUT_DIR="${OUTPUT_DIR:-$ROOT_DIR/dist/fnos}"

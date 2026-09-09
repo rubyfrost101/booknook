@@ -56,6 +56,7 @@ from app.models.library import (
     LibraryReadingProgress,
     LibraryVolume,
 )
+from app.modules.library.infrastructure.export import build_books_csv
 from app.modules.library.application.volume_commands import (
     BatchVolumeCommand,
     InvalidVolumeChangeError,
@@ -927,6 +928,28 @@ def list_works(
                 1, (result.total + result.page_size - 1) // result.page_size
             ),
         }
+    )
+
+
+@router.get("/works/export", response_class=Response)
+def export_works_csv(
+    request: Request,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    user, auth_error = _auth(db, request, settings)
+    if auth_error:
+        return auth_error
+    del user
+    content = build_books_csv(db)
+    return Response(
+        content=content.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="booknook-books-{datetime.now(UTC).date()}.csv"'
+            )
+        },
     )
 
 

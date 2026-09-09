@@ -19,7 +19,7 @@ SUPPORTED_IMPORT_FILE_EXTENSIONS = frozenset(
         ".prc",
         ".rar",
         ".txt",
-        ".zip",
+        # `.zip` 被排除：作为图书备份格式，不识别入库，避免与解压后的文件重复。
         *SUPPORTED_AUDIO_EXTS,
     }
 )

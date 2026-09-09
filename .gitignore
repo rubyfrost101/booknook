@@ -1,6 +1,7 @@
 node_modules
 .DS_Store
 .pnpm-store
+.trae/
 .next
 apps/web/.next-codex/
 apps/web/public/vendor/pdfjs/

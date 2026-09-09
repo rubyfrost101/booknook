@@ -102,6 +102,7 @@ export function ManagementLogsPage({ embedded = false }: { embedded?: boolean })
   const [expandedEventId, setExpandedEventId] = useState('');
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [exportingBooks, setExportingBooks] = useState(false);
   const [error, setError] = useState('');
   const [storage, setStorage] = useState<{ sizeBytes: number; maxBytes: number; lastPrunedAt?: string | null }>({ sizeBytes: 0, maxBytes: 5 * 1024 * 1024 });
   const [logMaxMb, setLogMaxMb] = useState(5);
@@ -234,13 +235,36 @@ export function ManagementLogsPage({ embedded = false }: { embedded?: boolean })
     }
   }
 
+  async function exportLibraryBooks() {
+    setExportingBooks(true);
+    try {
+      const response = await fetch('/api/works/export');
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+        throw new Error(payload?.error?.message ?? '导出图书清单失败');
+      }
+      const blob = await response.blob();
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = href;
+      link.download = `booknook-books-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(href);
+      toast.success('已导出图书清单');
+    } catch (reason) {
+      toast.error('导出图书清单失败', reason instanceof Error ? reason.message : '请稍后重试');
+    } finally {
+      setExportingBooks(false);
+    }
+  }
+
   useEffect(() => {
     void load();
   }, [load]);
 
   return (
     <div className={embedded ? 'space-y-4' : 'space-y-6'}>
-      {!embedded ? <PageTitle title={i18nAttribute("系统日志")} desc={i18nAttribute("按级别、来源、日期和关键字查看系统事件。")} action={<Button variant="secondary" icon={RefreshCw} loading={loading} loadingText={i18nAttribute("刷新中")} onClick={() => void load()}><I18nText>刷新</I18nText></Button>} /> : null}
+      {!embedded ? <PageTitle title={i18nAttribute("系统日志")} desc={i18nAttribute("按级别、来源、日期和关键字查看系统事件。")} action={<div className="flex items-center gap-2"><Button variant="secondary" icon={Download} loading={exportingBooks} loadingText={i18nAttribute("导出中")} onClick={() => void exportLibraryBooks()}><I18nText>导出图书清单</I18nText></Button><Button variant="secondary" icon={RefreshCw} loading={loading} loadingText={i18nAttribute("刷新中")} onClick={() => void load()}><I18nText>刷新</I18nText></Button></div>} /> : null}
       {!embedded ? <ManagementNav /> : null}
 
       <section className="rounded-[22px] border border-[#DEDAD4] bg-white p-4 sm:p-5" aria-labelledby="log-storage-title">

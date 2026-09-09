@@ -35,6 +35,7 @@ from app.bootstrap.library import (
 from app.bootstrap.library import (
     list_works as list_library_works,
 )
+from app.bootstrap.library import export_books_csv
 from app.bootstrap.media import media_streaming
 from app.bootstrap.shelf import shelf_store
 from app.bootstrap.system import record_system_event, system_event_storage_view
@@ -56,7 +57,6 @@ from app.models.library import (
     LibraryReadingProgress,
     LibraryVolume,
 )
-from app.modules.library.infrastructure.export import build_books_csv
 from app.modules.library.application.volume_commands import (
     BatchVolumeCommand,
     InvalidVolumeChangeError,
@@ -113,6 +113,7 @@ from app.modules.library.presentation.schemas import (
     LibraryNotFoundError,
     LibraryUnavailableError,
     LibraryUnprocessableError,
+    LibraryExportResponse,
     ManagementFoldersResponse,
     ManagementOverviewResponse,
     MergeCategoriesResponse,
@@ -931,7 +932,7 @@ def list_works(
     )
 
 
-@router.get("/works/export", response_class=Response)
+@router.get("/works/export", response_class=LibraryExportResponse)
 def export_works_csv(
     request: Request,
     db: Session = Depends(get_db),
@@ -941,7 +942,7 @@ def export_works_csv(
     if auth_error:
         return auth_error
     del user
-    content = build_books_csv(db)
+    content = export_books_csv(db)
     return Response(
         content=content.encode("utf-8"),
         media_type="text/csv; charset=utf-8",

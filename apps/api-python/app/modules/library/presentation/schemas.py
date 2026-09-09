@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Literal
 
+from fastapi.responses import Response
 from pydantic import Field
 from typing_extensions import TypeAliasType
 
@@ -11,6 +12,10 @@ from app.contracts.http_errors import HttpContractError
 from app.contracts.imports import ImportTaskContract
 from app.contracts.metadata_writeback import MetadataWritebackOperationContract
 from app.contracts.system_events import SystemEvent
+
+
+class LibraryExportResponse(Response):
+    media_type = "text/csv; charset=utf-8"
 
 MediaKind = Literal["EBOOK", "COMIC", "AUDIOBOOK"]
 ReadingStatus = Literal["UNREAD", "READING", "FINISHED"]

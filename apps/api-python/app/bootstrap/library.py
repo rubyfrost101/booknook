@@ -15,6 +15,7 @@ from app.modules.library.application.queries import (
 from app.modules.library.application.work_list import WorkListQuery, WorkListResult
 from app.modules.library.application.work_merge import MergeMetadataWritebackPort
 from app.modules.library.infrastructure import dashboard as library_dashboard
+from app.modules.library.infrastructure.export import build_books_csv
 from app.modules.library.infrastructure import deletion as library_deletion
 from app.modules.library.infrastructure import facet_queries as library_facet_queries
 from app.modules.library.infrastructure import join_queries as library_join_queries
@@ -50,6 +51,7 @@ __all__ = [
     "library_storage",
     "library_works",
     "list_works",
+    "export_books_csv",
     "move_volume_to_work",
     "reorder_volume",
     "smart_shelf_work_ids",
@@ -99,6 +101,10 @@ def list_works(
     query: WorkListQuery,
 ) -> WorkListResult:
     return _list_works(db, user, query)
+
+
+def export_books_csv(db: Session) -> str:
+    return build_books_csv(db)
 
 
 def move_volume_to_work(

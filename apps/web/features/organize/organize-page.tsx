@@ -1,0 +1,446 @@
+'use client';
+
+import { ChevronLeft, ChevronRight, RefreshCw, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Cover } from '../../components/book/cover';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { useConfirm, useToast } from '../../components/ui/feedback';
+import { PageTitle } from '../../components/ui/page-title';
+import { Select } from '../../components/ui/select';
+import { useI18n } from '../../i18n/provider';
+import type { WorkView } from '../../types/work';
+import { I18nText } from '@/i18n/provider';
+import { useI18n as useAttributeI18n } from '@/i18n/provider';
+import { mediaKindsLabel } from '../library/public';
+import type { MediaKind } from '../../types/work';
+
+type ProviderExecution = {
+  id: string;
+  providerId: string;
+  status: string;
+  attempts: number;
+  errorSummary?: string | null;
+};
+
+export type OrganizeStatusCategory = 'SUCCESS' | 'FAILED' | 'RECOGNIZING' | 'WAITING';
+
+export type OrganizeJobView = {
+  id: string;
+  runId?: string | null;
+  trigger?: string;
+  status: string;
+  statusCategory?: OrganizeStatusCategory;
+  issueCodes: string[];
+  reasonCodes?: string[];
+  summary: string | null;
+  errorSummary?: string | null;
+  metadataLookupStatus?: string | null;
+  metadataLookupSource?: string | null;
+  metadataLookupProviders?: string[];
+  metadataSources?: string[];
+  providerExecutions?: ProviderExecution[];
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  createdAt?: string | null;
+  updatedAt: string;
+  book: WorkView;
+};
+
+type OrganizeBookSummary = {
+  id: string;
+  title: string;
+  author: string;
+  availableMediaKinds: MediaKind[];
+};
+
+export type OrganizeJobSummaryView = {
+  id: string;
+  trigger: string;
+  statusCategory: OrganizeStatusCategory;
+  issueCodes: string[];
+  reasonCodes: string[];
+  metadataSources: string[];
+  createdAt: string;
+  updatedAt: string;
+  book: OrganizeBookSummary;
+};
+
+type JobsResponse = {
+  ok: boolean;
+  data?: {
+    jobs: OrganizeJobSummaryView[];
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    statusCounts?: Record<OrganizeStatusCategory, number>;
+    providerNames?: Record<string, string>;
+  };
+  error?: { message: string };
+};
+
+const fallbackSourceLabels: Record<string, string> = {
+  douban: '豆瓣图书',
+  bangumi: 'Bangumi',
+  ai: 'AI',
+  embedded: '内嵌元数据',
+  filename: '文件名',
+  aggregation: '自动聚合',
+  external: '外部数据源',
+  rule: '整理规则'
+};
+
+export function normalizeOrganizeJob(job: OrganizeJobView): OrganizeJobView | null {
+  if (!job?.book) return null;
+  return {
+    ...job,
+    statusCategory: job.statusCategory ?? organizeStatusCategory(job.status, job.metadataLookupStatus),
+    issueCodes: Array.isArray(job.issueCodes) ? job.issueCodes : [],
+    reasonCodes: Array.isArray(job.reasonCodes) ? job.reasonCodes : [],
+    metadataLookupProviders: Array.isArray(job.metadataLookupProviders) ? job.metadataLookupProviders : [],
+    metadataSources: Array.isArray(job.metadataSources) ? job.metadataSources : [],
+    providerExecutions: Array.isArray(job.providerExecutions) ? job.providerExecutions : [],
+    book: {
+      ...job.book,
+      title: job.book.title ?? '未命名作品',
+      author: job.book.author ?? '未知作者',
+      tags: Array.isArray(job.book.tags) ? job.book.tags : []
+    }
+  };
+}
+
+export function organizeStatusCategory(status: string, lookupStatus?: string | null): OrganizeStatusCategory {
+  const normalized = String(status || '').toUpperCase();
+  const lookup = String(lookupStatus || '').toUpperCase();
+  if (['APPLIED', 'COMPLETED'].includes(normalized)) return 'SUCCESS';
+  if (['FAILED', 'REVIEWING', 'DISMISSED', 'CANCELLED'].includes(normalized)) return 'FAILED';
+  if (normalized === 'RUNNING' || lookup === 'RUNNING') return 'RECOGNIZING';
+  return 'WAITING';
+}
+
+export function organizeStatusLabel(category: OrganizeStatusCategory) {
+  if (category === 'SUCCESS') return '成功';
+  if (category === 'FAILED') return '失败';
+  if (category === 'RECOGNIZING') return '识别中';
+  return '等待中';
+}
+
+function statusTone(category: OrganizeStatusCategory): 'green' | 'red' | 'blue' | 'amber' {
+  if (category === 'SUCCESS') return 'green';
+  if (category === 'FAILED') return 'red';
+  if (category === 'RECOGNIZING') return 'blue';
+  return 'amber';
+}
+
+function reasonLabel(code: string) {
+  if (code === 'MANUAL_SELECTED') return '历史手动加入';
+  if (code === 'MANUAL_RECOGNIZE') return '手动重新识别';
+  if (code === 'UNRECOGNIZED') return '尚未识别';
+  if (code === 'MISSING_METADATA') return '缺少元数据';
+  if (code === 'QUALITY_BELOW_THRESHOLD') return '元数据质量偏低';
+  if (code === 'NEW_IMPORT') return '新增读物';
+  if (code === 'IMPORT_FAILED') return '导入解析失败';
+  if (code === 'MISSING_COVER') return '缺少封面';
+  if (code === 'MISSING_AUTHOR') return '缺少作者';
+  if (code === 'ODD_TITLE') return '标题异常';
+  return code.replace(/^SUGGEST_/, '建议补全 ');
+}
+
+function jobReasons(job: OrganizeJobView | OrganizeJobSummaryView) {
+  const rawCodes = job.reasonCodes?.length ? job.reasonCodes : job.issueCodes;
+  const codes = rawCodes.filter((code) => code !== 'DUPLICATE' && !code.startsWith('SUGGEST_'));
+  if (codes.length) return [...new Set(codes.map(reasonLabel))];
+  if (job.trigger === 'NEW') return ['新增后自动执行'];
+  if (job.trigger === 'SCHEDULE') return ['定时识别'];
+  if (job.trigger === 'MANUAL') return ['历史手动加入'];
+  return ['历史整理任务'];
+}
+
+function jobSources(job: OrganizeJobSummaryView) {
+  return job.metadataSources;
+}
+
+function normalizeOrganizeJobSummary(job: OrganizeJobSummaryView): OrganizeJobSummaryView | null {
+  if (!job?.book) return null;
+  return {
+    ...job,
+    issueCodes: Array.isArray(job.issueCodes) ? job.issueCodes : [],
+    reasonCodes: Array.isArray(job.reasonCodes) ? job.reasonCodes : [],
+    metadataSources: Array.isArray(job.metadataSources) ? job.metadataSources : [],
+    book: {
+      ...job.book,
+      title: job.book.title || '未命名作品',
+      author: job.book.author || '未知作者',
+    },
+  };
+}
+
+function StatusBadge({ category }: { category: OrganizeStatusCategory }) {
+  return (
+    <Badge tone={statusTone(category)}>
+      <span className="inline-flex items-center gap-1.5">
+        {category === 'RECOGNIZING' ? <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" /> : null}
+        {organizeStatusLabel(category)}
+      </span>
+    </Badge>
+  );
+}
+
+function formatDateTime(value: string | null | undefined, locale: string) {
+  if (!value) return { date: '—', time: '' };
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return { date: String(value), time: '' };
+  return {
+    date: date.toLocaleDateString(locale),
+    time: date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+  };
+}
+
+export function OrganizePage({ embedded = false, jobBasePath = '/organize/jobs' }: { embedded?: boolean; jobBasePath?: string }) {
+  const { t: i18nAttribute } = useAttributeI18n();
+  const { locale } = useI18n();
+  const router = useRouter();
+  const confirm = useConfirm();
+  const toast = useToast();
+  const [jobs, setJobs] = useState<OrganizeJobSummaryView[]>([]);
+  const [providerNames, setProviderNames] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | OrganizeStatusCategory>('ALL');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState('20');
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [counts, setCounts] = useState<Record<OrganizeStatusCategory, number>>({ SUCCESS: 0, FAILED: 0, RECOGNIZING: 0, WAITING: 0 });
+  const [busy, setBusy] = useState('');
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearchQuery(search.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  const loadJobs = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+      if (searchQuery) params.set('search', searchQuery);
+      if (statusFilter !== 'ALL') params.set('status', statusFilter);
+      const jobsResponse = await fetch(`/api/organize/jobs?${params.toString()}`, { cache: 'no-store' });
+      const jobsPayload = (await jobsResponse.json()) as JobsResponse;
+      if (!jobsPayload.ok) throw new Error(jobsPayload.error?.message ?? '读取整理记录失败');
+      setJobs((jobsPayload.data?.jobs ?? []).map(normalizeOrganizeJobSummary).filter((job): job is OrganizeJobSummaryView => job !== null));
+      const nextTotalPages = Math.max(1, Number(jobsPayload.data?.totalPages ?? 1));
+      const nextPage = Math.min(nextTotalPages, Math.max(1, Number(jobsPayload.data?.page ?? page)));
+      setTotal(Number(jobsPayload.data?.total ?? 0));
+      setTotalPages(nextTotalPages);
+      if (jobsPayload.data?.statusCounts) setCounts(jobsPayload.data.statusCounts);
+      if (nextPage !== page) setPage(nextPage);
+      setProviderNames(jobsPayload.data?.providerNames ?? {});
+      setError('');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : '读取整理记录失败');
+    } finally {
+      if (!quiet) setLoading(false);
+    }
+  }, [page, pageSize, searchQuery, statusFilter]);
+
+  useEffect(() => { void loadJobs(); }, [loadJobs]);
+
+  function sourceLabel(source: string) {
+    return providerNames[source] ?? fallbackSourceLabels[source] ?? source;
+  }
+
+  async function mutateJob(job: OrganizeJobSummaryView, action: 'delete' | 'recognize') {
+    if (action === 'delete' && !await confirm({
+      title: '删除整理记录',
+      description: `仅删除《${job.book.title}》的整理记录，不会删除书库读物或文件。`,
+      confirmLabel: '删除',
+      tone: 'danger'
+    })) return;
+    setBusy(`${action}:${job.id}`);
+    try {
+      const response = await fetch(
+        action === 'delete' ? `/api/organize/jobs/${job.id}` : `/api/organize/jobs/${job.id}/recognize`,
+        { method: action === 'delete' ? 'DELETE' : 'POST' }
+      );
+      const payload = (await response.json()) as { ok: boolean; error?: { message: string } };
+      if (!payload.ok) throw new Error(payload.error?.message ?? '操作失败');
+      toast.success(action === 'delete' ? '整理记录已删除' : '已加入重新识别队列');
+      await loadJobs(true);
+    } catch (reason) {
+      toast.error('操作失败', reason instanceof Error ? reason.message : '请稍后重试');
+    } finally {
+      setBusy('');
+    }
+  }
+
+  return (
+    <div className={embedded ? 'space-y-4' : 'space-y-6'}>
+      {!embedded ? (
+        <PageTitle
+          title={i18nAttribute("整理队列")}
+          desc={i18nAttribute("查看全部整理记录；任务由定时策略或新增后自动执行产生。")}
+          action={<Button variant="secondary" icon={RefreshCw} onClick={() => void loadJobs()}><I18nText>刷新</I18nText></Button>}
+        />
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm leading-6 text-[#77716A]"><I18nText>查看全部整理记录，跟踪每次识别的入队原因、状态与数据源。</I18nText></p>
+          <Button variant="ghost" icon={RefreshCw} aria-label={i18nAttribute("刷新整理记录")} onClick={() => void loadJobs()}><I18nText>刷新</I18nText></Button>
+        </div>
+      )}
+
+      {error ? <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+
+      {!embedded ? (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {(['SUCCESS', 'FAILED', 'RECOGNIZING', 'WAITING'] as OrganizeStatusCategory[]).map((category) => (
+            <div key={category} className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-xs text-slate-500">{organizeStatusLabel(category)}</div>
+              <div className="mt-1 text-2xl font-semibold text-slate-950">{counts[category]}</div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="rounded-[28px] border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-[#EAE5DF] bg-white p-4 sm:flex-row sm:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9A938C]" />
+            <input
+              value={search}
+              onChange={(event) => { setSearch(event.target.value); setPage(1); }}
+              placeholder={i18nAttribute("搜索书名、作者、入队原因或数据源")}
+              className="h-11 w-full rounded-xl border border-[#E2DDD7] bg-[#FCFBF9] pl-10 pr-4 text-sm outline-none focus:border-[#EF8B73]"
+            />
+          </div>
+          <Select
+            value={statusFilter}
+            onChange={(value) => { setStatusFilter(value); setPage(1); }}
+            ariaLabel={i18nAttribute("整理记录状态筛选")}
+            options={[
+              { value: 'ALL', label: '全部状态' },
+              { value: 'SUCCESS', label: '成功' },
+              { value: 'FAILED', label: '失败' },
+              { value: 'RECOGNIZING', label: '识别中' },
+              { value: 'WAITING', label: '等待中' }
+            ]}
+            className="w-full sm:w-auto"
+            triggerClassName="h-11 min-w-[132px]"
+            align="right"
+          />
+          <span className="px-1 text-xs text-[#8B847D]"><I18nText>共 </I18nText>{total} <I18nText>条</I18nText></span>
+        </div>
+
+        {loading ? <div className="booknook-loading-panel p-8 text-sm" role="status" aria-live="polite"><I18nText>正在读取整理记录...</I18nText></div> : null}
+        {!loading && jobs.length === 0 ? <div className="p-10 text-center text-sm text-slate-500">{searchQuery || statusFilter !== 'ALL' ? i18nAttribute("没有符合当前筛选条件的记录。") : i18nAttribute("尚无整理记录。任务会在定时策略或新增后自动执行时产生。")}</div> : null}
+
+        {!loading && jobs.length > 0 ? (
+          <>
+            <div className="divide-y divide-slate-100 md:hidden">
+              {jobs.map((job) => {
+                const category = job.statusCategory ?? 'WAITING';
+                const reasons = jobReasons(job);
+                const sources = jobSources(job);
+                const time = formatDateTime(job.createdAt ?? job.updatedAt, locale);
+                return (
+                  <article key={job.id} data-testid="organize-job-mobile-card" className="p-4">
+                    <button type="button" onClick={() => router.push(`${jobBasePath}/${job.id}`)} className="flex w-full min-w-0 items-center gap-3 text-left">
+                      <Cover book={job.book} className="h-16 w-12 shrink-0 rounded-lg" small />
+                      <span data-i18n-skip className="min-w-0 flex-1">
+                        <span className="line-clamp-2 font-semibold leading-5 text-slate-900">{job.book.title}</span>
+                        <span className="mt-1 block truncate text-xs text-slate-500">{job.book.author} · {mediaKindsLabel(job.book.availableMediaKinds, locale)}</span>
+                      </span>
+                      <StatusBadge category={category} />
+                    </button>
+                    <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-100 pt-4 text-sm">
+                      <div><dt className="text-xs text-slate-500"><I18nText>入队原因</I18nText></dt><dd className="mt-1 flex flex-wrap gap-1">{reasons.slice(0, 2).map((reason) => <Badge key={reason} tone="slate">{reason}</Badge>)}</dd></div>
+                      <div><dt className="text-xs text-slate-500"><I18nText>数据源</I18nText></dt><dd className="mt-1 flex flex-wrap gap-1">{sources.length ? sources.slice(0, 2).map((source) => <Badge key={source} tone="blue">{sourceLabel(source)}</Badge>) : <span className="text-slate-400">—</span>}</dd></div>
+                      <div><dt className="text-xs text-slate-500"><I18nText>入队时间</I18nText></dt><dd className="mt-1 text-xs leading-5 text-slate-700">{time.date} {time.time}</dd></div>
+                      <div className="col-span-2 flex flex-wrap justify-end gap-2">
+                        <Button variant="secondary" icon={RotateCcw} className="min-h-9 px-3 py-1.5 text-xs" loading={busy === `recognize:${job.id}`} loadingText={i18nAttribute("入队中")} disabled={Boolean(busy)} onClick={() => void mutateJob(job, 'recognize')}><I18nText>重新识别</I18nText></Button>
+                        <Button variant="danger" icon={Trash2} className="min-h-9 px-3 py-1.5 text-xs" loading={busy === `delete:${job.id}`} loadingText={i18nAttribute("删除中")} disabled={Boolean(busy)} onClick={() => void mutateJob(job, 'delete')}><I18nText>删除</I18nText></Button>
+                      </div>
+                    </dl>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div data-testid="organize-job-desktop-table" className="hidden md:block">
+              <table className="w-full table-fixed text-left text-sm">
+                <thead className="bg-[#FAF9F7] text-xs text-[#716B64]">
+                  <tr>
+                    <th className="w-[24%] px-5 py-4 font-medium"><I18nText>读物</I18nText></th>
+                    <th className="w-[19%] px-3 py-4 font-medium"><I18nText>入队原因</I18nText></th>
+                    <th className="w-[12%] px-3 py-4 font-medium"><I18nText>状态</I18nText></th>
+                    <th className="w-[18%] px-3 py-4 font-medium"><I18nText>数据源</I18nText></th>
+                    <th className="w-[12%] px-3 py-4 font-medium"><I18nText>入队时间</I18nText></th>
+                    <th className="w-[15%] px-5 py-4 text-right font-medium"><I18nText>操作</I18nText></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {jobs.map((job) => {
+                    const category = job.statusCategory ?? 'WAITING';
+                    const reasons = jobReasons(job);
+                    const sources = jobSources(job);
+                    const time = formatDateTime(job.createdAt ?? job.updatedAt, locale);
+                    return (
+                      <tr key={job.id} className="transition-colors hover:bg-[#FCFBF9]">
+                        <td className="px-5 py-4 align-middle">
+                          <button type="button" onClick={() => router.push(`${jobBasePath}/${job.id}`)} className="flex w-full min-w-0 items-center gap-3 text-left">
+                            <Cover book={job.book} className="h-12 w-9 shrink-0 rounded-lg" small />
+                            <span data-i18n-skip className="min-w-0"><span className="block truncate font-semibold text-slate-900">{job.book.title}</span><span className="mt-1 block truncate text-xs text-slate-500">{job.book.author} · {mediaKindsLabel(job.book.availableMediaKinds, locale)}</span></span>
+                          </button>
+                        </td>
+                        <td className="px-3 py-4 align-middle"><div className="flex min-w-0 flex-wrap gap-1">{reasons.slice(0, 2).map((reason) => <Badge key={reason} tone="slate">{reason}</Badge>)}{reasons.length > 2 ? <span className="text-xs text-slate-400">+{reasons.length - 2}</span> : null}</div></td>
+                        <td className="px-3 py-4 align-middle"><StatusBadge category={category} /></td>
+                        <td className="px-3 py-4 align-middle"><div className="flex min-w-0 flex-wrap gap-1">{sources.length ? sources.slice(0, 2).map((source) => <Badge key={source} tone="blue">{sourceLabel(source)}</Badge>) : <span className="text-slate-400">—</span>}{sources.length > 2 ? <span className="text-xs text-slate-400">+{sources.length - 2}</span> : null}</div></td>
+                        <td className="px-3 py-4 align-middle text-xs leading-5 text-slate-500"><span className="block">{time.date}</span><span className="block tabular-nums">{time.time}</span></td>
+                        <td className="px-5 py-4 align-middle">
+                          <div className="flex flex-wrap justify-end gap-1.5">
+                            <Button variant="ghost" icon={RotateCcw} className="min-h-8 px-2.5 py-1.5 text-xs" loading={busy === `recognize:${job.id}`} loadingText={i18nAttribute("入队中")} disabled={Boolean(busy)} onClick={() => void mutateJob(job, 'recognize')}><I18nText>重新识别</I18nText></Button>
+                            <Button variant="ghost" icon={Trash2} className="min-h-8 px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-50 hover:text-red-700" loading={busy === `delete:${job.id}`} loadingText={i18nAttribute("删除中")} disabled={Boolean(busy)} onClick={() => void mutateJob(job, 'delete')}><I18nText>删除</I18nText></Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : null}
+
+        {!loading && total > 0 ? (
+          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EAE5DF] px-4 py-3 text-sm text-[#77716A] sm:px-5">
+            <div className="flex items-center gap-3">
+              <span><I18nText>共 </I18nText>{total} <I18nText>条记录</I18nText></span>
+              <Select
+                value={pageSize}
+                onChange={(value) => { setPageSize(value); setPage(1); }}
+                ariaLabel={i18nAttribute("每页显示数量")}
+                options={[
+                  { value: '20', label: '每页 20 条' },
+                  { value: '50', label: '每页 50 条' },
+                  { value: '100', label: '每页 100 条' }
+                ]}
+                size="sm"
+                align="left"
+                className="min-w-[118px]"
+              />
+            </div>
+            <nav className="flex items-center gap-2" aria-label={i18nAttribute("识别记录分页")}>
+              <button type="button" disabled={page <= 1 || loading} onClick={() => setPage((current) => Math.max(1, current - 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#DEDAD4] bg-white transition hover:bg-[#F7F4F0] disabled:opacity-40" aria-label={i18nAttribute("上一页")}><ChevronLeft size={16} /></button>
+              <span className="min-w-16 text-center text-[#4F4A45]">{page} / {totalPages}</span>
+              <button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#DEDAD4] bg-white transition hover:bg-[#F7F4F0] disabled:opacity-40" aria-label={i18nAttribute("下一页")}><ChevronRight size={16} /></button>
+            </nav>
+          </footer>
+        ) : null}
+      </div>
+    </div>
+  );
+}

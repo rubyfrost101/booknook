@@ -1,0 +1,59 @@
+import type { ReaderLocation } from '@booknook/reader-core';
+
+import type { Clock, IdGenerator } from '../../../shared/lib/runtime';
+import type { ReaderProgressDocumentStore } from './ports';
+import {
+  recordReaderProgress,
+  type LocalProgressEntryV2,
+  type ProgressConnection,
+  type ProgressOwner,
+} from '../model/reader-progress';
+
+export type SaveReaderProgressCommand = Readonly<{
+  connection: ProgressConnection;
+  owner: ProgressOwner;
+  workId: string;
+  volumeId: string;
+  contentFingerprint: string;
+  location: ReaderLocation;
+  percent: number;
+}>;
+
+export type SaveReaderProgressResult = Readonly<{
+  entry: LocalProgressEntryV2;
+  recoveredFromCorruption: boolean;
+  maintenanceWarningCount: number;
+}>;
+
+export class SaveReaderProgress {
+  constructor(
+    private readonly store: ReaderProgressDocumentStore,
+    private readonly clock: Clock,
+    private readonly idGenerator: IdGenerator,
+  ) {}
+
+  async execute(
+    command: SaveReaderProgressCommand,
+  ): Promise<SaveReaderProgressResult> {
+    const write = await this.store.update(
+      command.connection,
+      (current) => {
+        const recorded = recordReaderProgress(current, {
+          ...command,
+          nowMs: this.clock.nowMs(),
+          proposedClientId: this.idGenerator.nextId(),
+          mutationId: this.idGenerator.nextId(),
+        });
+        return {
+          document: recorded.document,
+          result: recorded.entry,
+        };
+      },
+    );
+    return {
+      entry: write.result,
+      recoveredFromCorruption: write.recoveredFromCorruption,
+      maintenanceWarningCount: write.maintenanceWarningCount,
+    };
+  }
+}

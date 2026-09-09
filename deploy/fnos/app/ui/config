@@ -1,0 +1,13 @@
+{
+  ".url": {
+    "booknook.main": {
+      "title": "私人书库",
+      "icon": "images/icon_v2_{0}.png",
+      "type": "url",
+      "protocol": "http",
+      "port": "${wizard_port}",
+      "url": "/",
+      "allUsers": true
+    }
+  }
+}

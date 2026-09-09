@@ -1,0 +1,624 @@
+@import '../styles/theme.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --booknook-safe-area-top: env(safe-area-inset-top, 0px);
+  --booknook-safe-area-right: env(safe-area-inset-right, 0px);
+  --booknook-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --booknook-safe-area-left: env(safe-area-inset-left, 0px);
+  --booknook-content-max-width: 80rem;
+}
+
+body {
+  background: var(--booknook-bg);
+  color: var(--booknook-text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+}
+
+html:has(.booknook-app-shell) {
+  scrollbar-gutter: stable;
+}
+
+.booknook-app-shell {
+  color-scheme: light;
+  scrollbar-color: #cfc8c0 transparent;
+}
+
+.booknook-app-shell * {
+  scrollbar-color: #cfc8c0 transparent;
+}
+
+.booknook-app-shell::-webkit-scrollbar,
+.booknook-app-shell *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.booknook-app-shell::-webkit-scrollbar-track,
+.booknook-app-shell *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.booknook-app-shell::-webkit-scrollbar-thumb,
+.booknook-app-shell *::-webkit-scrollbar-thumb {
+  background: #cfc8c0;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+.booknook-app-shell::-webkit-scrollbar-thumb:hover,
+.booknook-app-shell *::-webkit-scrollbar-thumb:hover {
+  background: #aba39a;
+  background-clip: padding-box;
+}
+
+.booknook-setup-scrollbar {
+  scrollbar-color: #8b9d83 transparent;
+  scrollbar-width: thin;
+}
+
+.booknook-setup-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.booknook-setup-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.booknook-setup-scrollbar::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #8b9d83;
+  background-clip: content-box;
+}
+
+.booknook-setup-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #606c38;
+}
+
+/* The work detail page uses the document as its only scroll surface. Keep it
+   scrollable while removing redundant browser chrome from the page and any
+   responsive overflow containers rendered inside it. */
+html[data-booknook-work-detail='true'],
+html[data-booknook-work-detail='true'] body,
+html[data-booknook-work-detail='true'] .booknook-app-shell,
+html[data-booknook-work-detail='true'] .booknook-app-shell * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html[data-booknook-work-detail='true']::-webkit-scrollbar,
+html[data-booknook-work-detail='true'] body::-webkit-scrollbar,
+html[data-booknook-work-detail='true'] .booknook-app-shell::-webkit-scrollbar,
+html[data-booknook-work-detail='true'] .booknook-app-shell *::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* The EPUB scrolled layout remains fully scrollable; only its browser chrome
+   is hidden. The iframe document applies the matching rule in epub-theme.ts. */
+[data-reader-engine='epub-v2'][data-reader-flow='scrolled'],
+[data-reader-engine='epub-v2'][data-reader-flow='scrolled'] .epub-container {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[data-reader-engine='epub-v2'][data-reader-flow='scrolled']::-webkit-scrollbar,
+[data-reader-engine='epub-v2'][data-reader-flow='scrolled'] .epub-container::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* A default-manager spine change inserts its replacement iframe before the
+   rendered callback can theme it. Hide every unprepared replacement from its
+   first DOM paint; the adapter reveals only the frame that passed its layout
+   and theme barrier. */
+[data-reader-engine='epub-v2'][data-booknook-epub-transition-active='true'] iframe:not([data-booknook-epub-transition-ready='true']) {
+  opacity: 0 !important;
+}
+
+.booknook-app-shell input[type='checkbox'] {
+  accent-color: var(--booknook-accent);
+  color-scheme: light;
+}
+
+@media (max-width: 1023px) {
+  .booknook-mobile-shell-main {
+    padding-bottom: calc(2rem + var(--booknook-safe-area-bottom) + 10px);
+  }
+
+  .booknook-mobile-shell-content {
+    padding-top: calc(1.75rem + var(--booknook-safe-area-top));
+    padding-right: calc(1.25rem + var(--booknook-safe-area-right));
+    padding-left: calc(1.25rem + var(--booknook-safe-area-left));
+  }
+
+  .booknook-auth-safe-screen {
+    padding-top: calc(1.5rem + var(--booknook-safe-area-top));
+    padding-right: calc(1.5rem + var(--booknook-safe-area-right));
+    padding-bottom: calc(1.5rem + var(--booknook-safe-area-bottom) + 10px);
+    padding-left: calc(1.5rem + var(--booknook-safe-area-left));
+  }
+
+  .booknook-pwa-bottom-overlay {
+    bottom: calc(0.75rem + var(--booknook-safe-area-bottom) + 10px);
+  }
+
+  .booknook-pwa-top-overlay,
+  .booknook-toast-region {
+    top: calc(1rem + var(--booknook-safe-area-top));
+  }
+}
+
+.booknook-mobile-drawer-root {
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms ease, visibility 0s linear 220ms;
+}
+
+.booknook-mobile-drawer-root[data-open='true'] {
+  visibility: visible;
+  pointer-events: auto;
+  opacity: 1;
+  transition-delay: 0s;
+}
+
+.booknook-mobile-drawer-scrim {
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.booknook-mobile-drawer-root[data-open='true'] .booknook-mobile-drawer-scrim {
+  opacity: 1;
+}
+
+.booknook-mobile-drawer-panel {
+  padding-top: calc(1rem + var(--booknook-safe-area-top));
+  padding-bottom: calc(0.75rem + var(--booknook-safe-area-bottom) + 10px);
+  transform: translate3d(-102%, 0, 0);
+  transition: transform 240ms cubic-bezier(0.22, 0.82, 0.28, 1);
+  will-change: transform;
+}
+
+.booknook-mobile-drawer-root[data-open='true'] .booknook-mobile-drawer-panel {
+  transform: translate3d(0, 0, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .booknook-mobile-drawer-root,
+  .booknook-mobile-drawer-scrim,
+  .booknook-mobile-drawer-panel {
+    transition-duration: 0.01ms;
+  }
+}
+
+.booknook-audio-mini-player {
+  right: calc(0.65rem + var(--booknook-safe-area-right));
+  bottom: calc(0.65rem + var(--booknook-safe-area-bottom) + 10px);
+  left: calc(0.65rem + var(--booknook-safe-area-left));
+}
+
+.booknook-audio-mini-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.65rem);
+  width: min(100%, 34rem);
+  max-height: min(54dvh, 28rem);
+}
+
+@media (max-height: 520px) and (max-width: 1023px) {
+  .booknook-audio-mini-panel {
+    position: fixed;
+    z-index: 1;
+    top: calc(0.65rem + var(--booknook-safe-area-top));
+    right: calc(0.65rem + var(--booknook-safe-area-right));
+    bottom: calc(0.65rem + var(--booknook-safe-area-bottom));
+    left: calc(0.65rem + var(--booknook-safe-area-left));
+    width: auto;
+    max-height: none;
+  }
+}
+
+.booknook-audio-mini-player[data-reader-overlay='true'] {
+  bottom: calc(7.25rem + var(--booknook-safe-area-bottom));
+}
+
+main[data-audio-mini-player='true'] {
+  padding-bottom: calc(7.5rem + var(--booknook-safe-area-bottom) + 10px);
+}
+
+html[data-audio-mini-player='visible'] .booknook-pwa-bottom-overlay {
+  bottom: calc(7.5rem + var(--booknook-safe-area-bottom) + 10px);
+}
+
+html[data-audio-mini-player='reader'] .booknook-pwa-bottom-overlay {
+  bottom: calc(19rem + var(--booknook-safe-area-bottom));
+}
+
+@media (min-width: 1024px) {
+  .booknook-audio-mini-player {
+    right: 1.5rem;
+    bottom: 1.5rem;
+    left: calc(clamp(236px, 16vw, 264px) + 1.5rem);
+  }
+
+  .booknook-audio-mini-player[data-reader-overlay='true'] {
+    right: 1.5rem;
+    bottom: 1.5rem;
+    left: 1.5rem;
+    max-width: 760px;
+  }
+
+  main[data-audio-mini-player='true'] {
+    padding-bottom: 9rem;
+  }
+
+  html[data-audio-mini-player='visible'] .booknook-pwa-bottom-overlay,
+  html[data-audio-mini-player='reader'] .booknook-pwa-bottom-overlay {
+    bottom: 9rem;
+  }
+
+  .booknook-audio-mini-panel {
+    max-height: min(62dvh, 31rem);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .booknook-mobile-shell-content {
+    padding-right: calc(1.75rem + var(--booknook-safe-area-right));
+    padding-left: calc(1.75rem + var(--booknook-safe-area-left));
+  }
+
+  .booknook-auth-safe-screen {
+    padding-top: calc(2rem + var(--booknook-safe-area-top));
+    padding-right: calc(2rem + var(--booknook-safe-area-right));
+    padding-bottom: calc(2rem + var(--booknook-safe-area-bottom) + 10px);
+    padding-left: calc(2rem + var(--booknook-safe-area-left));
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* iOS standalone positions bottom: 0 above the home-indicator canvas on some
+   versions. Bleed reader chrome through that inset while keeping controls in
+   the normal interactive viewport. */
+.booknook-reader-bottom-bleed {
+  bottom: calc(-1 * var(--booknook-safe-area-bottom));
+}
+
+.booknook-reader-bottom-console {
+  height: calc(9.25rem + var(--booknook-safe-area-bottom));
+  transition:
+    height 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease;
+}
+
+[data-reader-shell='v3'] {
+  --booknook-reader-accent: #b45309;
+  --booknook-reader-control-border: rgb(28 25 23 / 10%);
+}
+
+[data-reader-shell='v3'][data-reader-theme='green'] {
+  --booknook-reader-accent: #3f6f4e;
+  --booknook-reader-control-border: rgb(32 49 38 / 12%);
+}
+
+[data-reader-shell='v3'][data-reader-theme='night'] {
+  --booknook-reader-accent: #f59e0b;
+  --booknook-reader-control-border: #334155;
+}
+
+[data-reader-shell='v3'][data-reader-theme='black'] {
+  --booknook-reader-accent: #f59e0b;
+  --booknook-reader-control-border: #262626;
+}
+
+.booknook-reader-control-border {
+  border-color: var(--booknook-reader-control-border);
+}
+
+.booknook-reader-accent-text {
+  color: var(--booknook-reader-accent);
+}
+
+.booknook-reader-accent-selected {
+  background: color-mix(in srgb, var(--booknook-reader-accent) 12%, transparent);
+  color: var(--booknook-reader-accent);
+}
+
+.booknook-reader-accent-solid {
+  background: var(--booknook-reader-accent);
+  border-color: var(--booknook-reader-accent);
+  color: white;
+}
+
+.booknook-reader-accent-toggle {
+  background: var(--booknook-reader-accent);
+  border-color: var(--booknook-reader-accent);
+}
+
+.booknook-reader-bottom-console[data-reader-panel-state='notes'] {
+  height: min(
+    calc(35rem + var(--booknook-safe-area-bottom)),
+    calc(100dvh - 4.5rem - var(--booknook-safe-area-top))
+  );
+}
+
+.booknook-reader-bottom-console[data-reader-panel-state='appearance'] {
+  height: min(
+    calc(36rem + var(--booknook-safe-area-bottom)),
+    calc(100dvh - 4.5rem - var(--booknook-safe-area-top))
+  );
+}
+
+.booknook-reader-bottom-console[data-reader-panel-state='settings'] {
+  height: min(
+    calc(39rem + var(--booknook-safe-area-bottom)),
+    calc(100dvh - 4.5rem - var(--booknook-safe-area-top))
+  );
+}
+
+.booknook-reader-bottom-console[data-reader-panel-state='toc'] {
+  height: min(
+    calc(42rem + var(--booknook-safe-area-bottom)),
+    calc(100dvh - 4.5rem - var(--booknook-safe-area-top))
+  );
+}
+
+.booknook-reader-control-workspace {
+  position: absolute;
+  inset: 0 0 14.25rem;
+  min-height: 0;
+  animation: booknook-reader-workspace-enter 180ms ease-out both;
+}
+
+.booknook-reader-control-workspace [data-pwa-scroll='true'] {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.booknook-reader-control-workspace [data-pwa-scroll='true']::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.booknook-reader-advanced-settings {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease;
+}
+
+.booknook-reader-advanced-settings[data-expanded='true'] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.booknook-reader-console-home {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 8rem;
+  opacity: 1;
+  transform: none;
+}
+
+.booknook-reader-console-home [data-reader-console-nav='true'] {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 4.75rem;
+}
+
+@media (max-width: 767px) {
+  .booknook-reader-bottom-console[data-reader-panel-state]:not([data-reader-panel-state='home'])
+    [data-reader-mobile-progress-controls='true'] {
+    display: none;
+  }
+
+  .booknook-reader-bottom-console[data-reader-panel-state]:not([data-reader-panel-state='home'])
+    .booknook-reader-console-home {
+    height: 4.75rem;
+  }
+
+  .booknook-reader-bottom-console[data-reader-panel-state]:not([data-reader-panel-state='home'])
+    .booknook-reader-control-workspace {
+    bottom: 4.75rem;
+  }
+}
+
+@keyframes booknook-reader-workspace-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (min-width: 768px) {
+  .booknook-reader-bottom-console {
+    height: calc(5.75rem + var(--booknook-safe-area-bottom));
+  }
+
+  .booknook-reader-bottom-console[data-reader-panel-state]:not([data-reader-panel-state='home']) {
+    height: min(
+      calc(32rem + var(--booknook-safe-area-bottom)),
+      calc(100dvh - 6rem - var(--booknook-safe-area-top))
+    );
+  }
+
+  .booknook-reader-console-home {
+    height: 4.5rem;
+  }
+
+  .booknook-reader-control-workspace {
+    bottom: 4.5rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .booknook-reader-bottom-console[data-reader-panel-state]:not([data-reader-panel-state='home']) {
+    height: auto;
+    max-height: calc(100dvh - 6rem - var(--booknook-safe-area-top));
+  }
+
+  .booknook-reader-bottom-console[data-reader-panel-state]:not([data-reader-panel-state='home'])
+    > [data-reader-console-surface='true'] {
+    height: auto;
+    max-height: calc(
+      100dvh - 7.25rem - var(--booknook-safe-area-top) - var(--booknook-safe-area-bottom)
+    );
+    gap: 0.75rem;
+    overflow: visible;
+    border-color: transparent;
+    background: transparent !important;
+    box-shadow: none;
+  }
+
+  .booknook-reader-bottom-console[data-reader-panel-state]:not([data-reader-panel-state='home'])
+    .booknook-reader-control-workspace {
+    position: relative;
+    inset: auto;
+    width: min(25rem, 100%);
+    height: min(
+      31.25rem,
+      calc(100dvh - 7.25rem - var(--booknook-safe-area-top) - var(--booknook-safe-area-bottom))
+    );
+    flex: 0 1 auto;
+    border: 1px solid var(--booknook-reader-control-border);
+    border-radius: 1.35rem;
+    background: var(--booknook-reader-surface);
+    box-shadow: 0 16px 42px rgb(75 54 31 / 14%);
+  }
+
+  .booknook-reader-bottom-console:is(
+      [data-reader-panel-state='toc'],
+      [data-reader-panel-state='notes'],
+      [data-reader-panel-state='bookmarks'],
+      [data-reader-panel-state='annotations']
+    )
+    .booknook-reader-control-workspace {
+    align-self: flex-start;
+  }
+
+  .booknook-reader-bottom-console:is(
+      [data-reader-panel-state='appearance'],
+      [data-reader-panel-state='settings']
+    )
+    .booknook-reader-control-workspace {
+    align-self: flex-end;
+  }
+
+  .booknook-reader-bottom-console[data-reader-panel-state]:not([data-reader-panel-state='home'])
+    .booknook-reader-console-home {
+    position: relative;
+    inset: auto;
+    flex: 0 0 4.5rem;
+    overflow: hidden;
+    border: 1px solid var(--booknook-reader-control-border);
+    border-radius: 1.35rem;
+    background: var(--booknook-reader-surface);
+    box-shadow: 0 8px 28px rgb(75 54 31 / 10%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .booknook-reader-bottom-console {
+    transition: none;
+  }
+
+  .booknook-reader-control-workspace,
+  .booknook-reader-console-home,
+  .booknook-reader-advanced-settings {
+    animation: none;
+    transition: none;
+  }
+}
+
+@keyframes booknook-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.booknook-app-shell :where(button[class*='rounded'], a[href][class*='rounded'], [role='button'][class*='rounded']) {
+  transition-property: color, background-color, border-color, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+.booknook-app-shell :where(button[class*='rounded'], a[href][class*='rounded'], [role='button'][class*='rounded']):where(:not(:disabled, [aria-disabled='true'])):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--booknook-focus);
+}
+
+.booknook-loading-panel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid #f4c7b9;
+  border-radius: 1.5rem;
+  background: var(--booknook-accent-softer);
+  color: var(--booknook-muted);
+}
+
+.booknook-loading-panel::after {
+  content: '';
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 auto;
+  order: -1;
+  border-radius: 999px;
+  border: 2px solid #f4c7b9;
+  border-top-color: var(--booknook-accent);
+  animation: booknook-loading-spin 0.85s linear infinite;
+}
+
+.booknook-content-frame {
+  width: min(100%, var(--booknook-content-max-width));
+  margin-inline: auto;
+}
+
+.booknook-hairline {
+  border-color: var(--booknook-line);
+}
+
+.booknook-cover-shadow {
+  box-shadow: var(--booknook-shadow-cover);
+}
+
+[data-booknook-epub-transition-active='true']
+  iframe:not([data-booknook-epub-transition-current='true']):not([data-booknook-epub-transition-ready='true']) {
+  opacity: 0 !important;
+}
+
+.booknook-app-shell ::selection {
+  background: #ffd8cc;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .booknook-app-shell *,
+  .booknook-app-shell *::before,
+  .booknook-app-shell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

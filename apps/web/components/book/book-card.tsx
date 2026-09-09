@@ -1,0 +1,118 @@
+'use client';
+
+import { Check, Trash2 } from 'lucide-react';
+import type { KeyboardEvent, MouseEvent } from 'react';
+import { Progress } from '../ui/progress';
+import { Cover } from './cover';
+import type { CoverBook } from './cover';
+import { allWorkVolumes, volumeById, type WorkView } from '../../types/work';
+import { useI18n as useAttributeI18n } from '@/i18n/provider';
+
+type CardMediaKind = 'EBOOK' | 'COMIC' | 'AUDIOBOOK';
+
+const mediaLabels: Record<CardMediaKind, string> = {
+  EBOOK: '电子书',
+  COMIC: '漫画',
+  AUDIOBOOK: '有声书'
+};
+
+function consumptionStatusLabel(status: string | undefined, mediaKinds: CardMediaKind[]) {
+  const normalized = status === 'FINISHED' ? 'FINISHED' : status === 'READING' ? 'READING' : 'UNREAD';
+  if (mediaKinds.length !== 1) return normalized === 'FINISHED' ? '已完成' : normalized === 'READING' ? '进行中' : '未开始';
+  if (mediaKinds[0] === 'AUDIOBOOK') return normalized === 'FINISHED' ? '听完' : normalized === 'READING' ? '在听' : '未听';
+  if (mediaKinds[0] === 'COMIC') return normalized === 'FINISHED' ? '看完' : normalized === 'READING' ? '在看' : '未看';
+  return normalized === 'FINISHED' ? '已读' : normalized === 'READING' ? '在读' : '未读';
+}
+
+export function BookCard({
+  book,
+  compact = false,
+  priority = false,
+  onDelete,
+  onClick,
+  selectable = false,
+  selected = false,
+  onSelect
+}: {
+  book: WorkView & CoverBook;
+  compact?: boolean;
+  priority?: boolean;
+  onDelete?: () => void;
+  onClick?: () => void;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: () => void;
+}) {
+  const { t: i18nAttribute } = useAttributeI18n();
+  const authorLabel = book.author.trim() && book.author !== '未知作者' ? book.author.trim() : null;
+  const continueVolume = volumeById(book, book.continueVolumeId);
+  const mediaKinds = book.mediaVersions.map((mediaVersion) => mediaVersion.mediaKind) as CardMediaKind[];
+  const hasProgress = Boolean(continueVolume && continueVolume.progress > 0 && continueVolume.progress < 100);
+  const readingLabel = consumptionStatusLabel(book.completed ? 'FINISHED' : allWorkVolumes(book).some((volume) => volume.progress > 0) ? 'READING' : 'UNREAD', mediaKinds);
+
+  function deleteBook(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    onDelete?.();
+  }
+
+  function openBook(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.target !== event.currentTarget || !onClick || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    onClick();
+  }
+
+  return (
+    <div
+      onClick={onClick}
+      onKeyDown={openBook}
+      role={onClick ? 'link' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={onClick ? i18nAttribute("查看《{value0}》", { value0: book.title }) : undefined}
+      className={`group relative min-w-0 cursor-pointer rounded-xl outline-none transition focus-visible:ring-2 focus-visible:ring-[#F6B7A5] ${selected ? 'ring-2 ring-[#EF4D2F] ring-offset-4 ring-offset-[#F7F4F0]' : ''}`}
+    >
+      {selectable ? (
+        <label className={`absolute left-2 top-2 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border shadow-sm ${selected ? 'border-[#EF4D2F] bg-[#EF4D2F] text-white' : 'border-black/[0.12] bg-white/95 text-transparent'}`} onClick={(event) => event.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onSelect}
+            className="sr-only"
+            aria-label={i18nAttribute(selected ? "取消选择《{value0}》" : "选择《{value0}》", { value0: book.title })}
+          />
+          <Check size={15} aria-hidden="true" />
+        </label>
+      ) : null}
+      {onDelete ? (
+        <button
+          type="button"
+          onClick={deleteBook}
+          className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-black/[0.06] bg-white/95 text-red-600 opacity-0 shadow-sm transition hover:bg-red-50 focus:opacity-100 group-hover:opacity-100"
+          title={i18nAttribute("删除记录")}
+          aria-label={i18nAttribute("删除 {value0}", { value0: book.title })}
+        >
+          <Trash2 size={15} />
+        </button>
+      ) : null}
+      <Cover
+        book={book}
+        size={compact ? 'small' : 'medium'}
+        priority={priority}
+        className="aspect-[2/3] w-full rounded-[9px] transition duration-200 group-hover:-translate-y-0.5"
+      />
+      <div className="mt-2">
+        <div data-i18n-skip className={compact ? 'line-clamp-1 text-[13px] font-medium text-[#24211F]' : 'line-clamp-1 text-sm font-medium text-[#24211F]'}>{book.title}</div>
+        {authorLabel ? <div data-i18n-skip className="mt-0.5 line-clamp-1 text-xs text-[#89837D]">{authorLabel}</div> : null}
+        <div className="mt-1 line-clamp-1 text-[11px] text-[#9A948E]">{mediaKinds.map((kind) => mediaLabels[kind]).join(' · ')}</div>
+        {continueVolume ? <div data-i18n-skip className="mt-1 line-clamp-1 text-[11px] text-[#8B857F]">{continueVolume.title}</div> : null}
+        {hasProgress && continueVolume ? (
+          <div className="mt-1.5 flex items-center gap-2">
+            <Progress value={continueVolume.progress} className="h-1 flex-1 bg-[#E4E0DC]" />
+            <span className="shrink-0 text-[11px] tabular-nums text-[#77716B]">{Math.round(continueVolume.progress)}%</span>
+          </div>
+        ) : readingLabel ? (
+          <div className="mt-1 text-xs text-[#8B857F]">{readingLabel}</div>
+        ) : null}
+      </div>
+    </div>
+  );
+}

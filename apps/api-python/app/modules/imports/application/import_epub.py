@@ -149,6 +149,7 @@ def _import_epub(
             "origin": options.origin,
             "monitorFolderId": options.monitor_folder_id,
         },
+        logical_path=str(options.source_file_path),
     )
     work_updates = _missing_epub_work_metadata(work, metadata)
     if work_updates:

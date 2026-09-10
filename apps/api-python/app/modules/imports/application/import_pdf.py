@@ -188,6 +188,7 @@ def _import_pdf(
             "origin": options.origin,
             "monitorFolderId": options.monitor_folder_id,
         },
+        logical_path=str(options.source_file_path),
     )
     cover_path = None
     try:

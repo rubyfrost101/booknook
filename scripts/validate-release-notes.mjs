@@ -125,6 +125,7 @@ export async function readApplicationVersions(repositoryRoot) {
   const rootPackage = JSON.parse(await readFile(path.join(repositoryRoot, 'package.json'), 'utf8'));
   const webPackage = JSON.parse(await readFile(path.join(repositoryRoot, 'apps/web/package.json'), 'utf8'));
   const mobilePackage = JSON.parse(await readFile(path.join(repositoryRoot, 'apps/mobile/package.json'), 'utf8'));
+  const readerCorePackage = JSON.parse(await readFile(path.join(repositoryRoot, 'packages/reader-core/package.json'), 'utf8'));
   const mobileApp = JSON.parse(await readFile(path.join(repositoryRoot, 'apps/mobile/app.json'), 'utf8'));
   const pyproject = await readFile(path.join(repositoryRoot, 'apps/api-python/pyproject.toml'), 'utf8');
   const runtimeConfig = await readFile(path.join(repositoryRoot, 'apps/api-python/app/core/config.py'), 'utf8');
@@ -134,6 +135,7 @@ export async function readApplicationVersions(repositoryRoot) {
     root: rootPackage.version,
     web: webPackage.version,
     mobile: mobilePackage.version,
+    readerCore: readerCorePackage.version,
     mobileRuntime: mobileApp.expo?.version ?? null,
     python: /^version = "([^"]+)"$/mu.exec(pyproject)?.[1] ?? null,
     runtime: /^\s*app_version: str = "([^"]+)"$/mu.exec(runtimeConfig)?.[1] ?? null,

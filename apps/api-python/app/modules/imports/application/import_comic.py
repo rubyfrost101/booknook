@@ -137,6 +137,7 @@ def _import_comic(
             "origin": options.origin,
             "monitorFolderId": options.monitor_folder_id,
         },
+        logical_path=str(options.source_file_path),
     )
     media_version = (
         _select_volume_media_version(

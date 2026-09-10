@@ -111,6 +111,7 @@ test('application version sources and release tags must exactly match', () => {
     root: '1.2.3',
     web: '1.2.3',
     mobile: '1.2.3',
+    readerCore: '1.2.3',
     mobileRuntime: '1.2.3',
     python: '1.2.3',
     runtime: '1.2.3',
@@ -120,5 +121,6 @@ test('application version sources and release tags must exactly match', () => {
   assert.doesNotThrow(() => validateApplicationVersions(versions, 'v1.2.3'));
   assert.throws(() => validateApplicationVersions({ ...versions, runtime: '1.2.2' }), /version mismatch/u);
   assert.throws(() => validateApplicationVersions({ ...versions, serviceWorker: '1.2.2' }), /version mismatch/u);
+  assert.throws(() => validateApplicationVersions({ ...versions, readerCore: '1.2.2' }), /version mismatch/u);
   assert.throws(() => validateApplicationVersions(versions, 'v1.2.4'), /does not match/u);
 });

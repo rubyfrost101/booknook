@@ -23,7 +23,14 @@ from app.modules.imports.application.identity_policy import (
 from app.services.metadata_provider_registry import metadata_provider_runtime_config
 
 UNKNOWN_AUTHOR = "未知作者"
-IDENTITY_PARSER_VERSION = 8
+IDENTITY_PARSER_VERSION = 11
+
+# Audio/textbook collections routinely contain duplicate copies whose file or
+# folder names carry a parenthetical copy number attached directly to the
+# previous character, e.g. ``0022_0(1).mp3`` or ``6.6_20(1).mp3``.  A
+# space-separated ``Title (1)`` is still a real volume number (comics), so the
+# copy suffix is detected by the lack of whitespace before the parenthesis.
+_COPY_SUFFIX_RE = re.compile(r"[^\s(（][\(（]\s*\d{1,3}\s*[\)）]\s*$")
 
 
 @dataclass(frozen=True)
@@ -299,8 +306,9 @@ def _identity_has_normal_title_and_author(identity: BookIdentity) -> bool:
 def recognize_book_identity_with_regex(logical_path: str) -> BookIdentity:
     path = Path(logical_path)
     stem = path.stem.strip()
-    _stem_title, suffix_volume = _strip_volume_suffix(_clean_title(stem))
-    volume_index = _volume_index(stem) or suffix_volume
+    volume_stem = _strip_download_suffixes(stem)
+    _stem_title, suffix_volume = _strip_volume_suffix(_clean_title(volume_stem))
+    volume_index = _volume_index(volume_stem) or suffix_volume
 
     for ancestor in reversed(path.parent.parts):
         bracketed = parse_bracketed_series_identity(ancestor, stem)
@@ -353,6 +361,18 @@ def recognize_book_identity_with_regex(logical_path: str) -> BookIdentity:
                 logical_path=logical_path,
             )
 
+    parenthesized_year_identity = _parenthesized_year_author_identity(stem)
+    if parenthesized_year_identity:
+        title, author = parenthesized_year_identity
+        return BookIdentity(
+            title=title,
+            author=author,
+            volume_index=volume_index,
+            source="regex",
+            confidence=0.9,
+            logical_path=logical_path,
+        )
+
     for ancestor in reversed(path.parent.parts):
         ancestor_title, ancestor_volume = _directory_title_and_volume(ancestor)
         if ancestor_volume is not None and ancestor_title:
@@ -366,8 +386,22 @@ def recognize_book_identity_with_regex(logical_path: str) -> BookIdentity:
                 confidence=0.7,
                 logical_path=logical_path,
             )
+        grade_volume = _grade_directory_volume(ancestor)
+        if grade_volume is not None and volume_index is None:
+            volume_index = grade_volume
 
-    stripped_title, suffix_volume = _strip_volume_suffix(_clean_title(stem))
+    stripped_title = _clean_title(stem)
+    suffix_volume = None
+    has_grade_directory = any(
+        _grade_directory_volume(ancestor) is not None
+        for ancestor in path.parent.parts
+    )
+    if has_grade_directory and volume_index is not None:
+        # Volume already came from the grade directory; keep embedded digits
+        # such as "g2 vocabulary cards" inside the title.
+        stripped_title = _clean_title(stem)
+    else:
+        stripped_title, suffix_volume = _strip_volume_suffix(stripped_title)
     volume_index = volume_index if volume_index is not None else suffix_volume
     if not stripped_title or _is_volume_only(stem):
         parent = path.parent.name
@@ -579,20 +613,105 @@ def _looks_like_volume_range(value: str) -> bool:
 def _download_filename_identity(value: str) -> tuple[str, str] | None:
     """Parse ``title (author) (download-source.example)`` filenames.
 
-    The source suffix is deliberately required so ordinary titles containing
-    parentheses are left to the normal fallback rules.
+    A download-source suffix is deliberately required so ordinary titles
+    containing parentheses are left to the normal fallback rules.  Known
+    sources such as ``(Z-Library)`` and numeric copy suffixes such as
+    ``(2)`` directly after a source are also accepted, so
+    ``Title (Author) (Z-Library) (2)`` resolves to ``Title``/``Author``.
     """
-    without_source, source = _split_trailing_parenthetical(value)
-    if not source or not _looks_like_download_source(source):
+    value = _clean_title(value)
+    stripped = _strip_download_suffixes(value)
+    if stripped == value:
         return None
 
-    raw_title, raw_author = _split_trailing_parenthetical(without_source)
+    raw_title, raw_author = _split_trailing_parenthetical(stripped)
     author = _clean_author(raw_author or "")
     if not raw_title or not author or _looks_like_download_source(author):
         return None
 
     title = _clean_download_title(raw_title)
     return (title, author) if title else None
+
+
+def _parenthesized_year_author_identity(
+    value: str,
+) -> tuple[str, str] | None:
+    """Parse ``Title-(Author)-YYYY`` filenames.
+
+    This covers compact bookstore-style names such as
+    ``股票投资要义-(胡斐)-2015`` where the author appears in parentheses
+    between the title and the edition year.  The trailing four-digit year is
+    dropped, never treated as a volume index.
+    """
+    match = re.fullmatch(
+        r"^(.*?)\s*-\s*\(([^()（）\-_]+)\)\s*-\s*(\d{4})\s*$",
+        value.strip(),
+    )
+    if not match:
+        return None
+    title = _clean_title(match.group(1))
+    author = _clean_author(match.group(2))
+    if not title or not author:
+        return None
+    return title, author
+
+
+def _strip_download_suffixes(value: str) -> str:
+    """Remove trailing download-source and copy-number parentheticals.
+
+    A plain numeric parenthetical is only removed when a download-source
+    suffix was already stripped, so real volume numbers such as
+    ``Title (1)`` are preserved.  ``Title (Author) (Z-Library) (2)``
+    therefore collapses to ``Title (Author)``.
+    """
+    cleaned = value.rstrip()
+    stripped_any = False
+    while True:
+        without, suffix = _split_trailing_parenthetical(cleaned)
+        if suffix is None:
+            return cleaned
+        is_source = _looks_like_download_source(suffix) or _looks_like_known_source(
+            suffix
+        )
+        is_copy = bool(re.fullmatch(r"\d+", suffix.strip())) and (
+            stripped_any or _contains_download_source(without)
+        )
+        if not (is_source or is_copy):
+            return cleaned
+        cleaned = without
+        stripped_any = True
+
+
+def _contains_download_source(value: str) -> bool:
+    """Return whether any trailing parenthetical is a download source."""
+
+    cleaned = value.rstrip()
+    while True:
+        without, suffix = _split_trailing_parenthetical(cleaned)
+        if suffix is None:
+            return False
+        if _looks_like_download_source(suffix) or _looks_like_known_source(suffix):
+            return True
+        cleaned = without
+
+
+def _looks_like_known_source(value: str) -> bool:
+    """Recognize well-known ebook-download source labels.
+
+    Domain-style suffixes such as ``z-lib.sk`` are already handled by
+    ``_looks_like_download_source``; this covers the plain labels that are
+    common in the wild, including the hyphenated ``(Z-Library)``.
+    """
+    cleaned = re.sub(r"[\s_]+", " ", value.strip()).strip()
+    return bool(
+        re.fullmatch(
+            r"(?:Z[- ]?Library|Z[- ]?Lib(?:rary)?|libgen(?:\.\w+)?|"
+            r"Library Genesis|bookzz|b-ok(?:\.\w+)?|Anna's Archive|"
+            r"oceanofpdf|archive\.org|overdrive)",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+    )
 
 
 def _split_trailing_parenthetical(value: str) -> tuple[str, str | None]:
@@ -614,13 +733,24 @@ def _split_trailing_parenthetical(value: str) -> tuple[str, str | None]:
 
 
 def _looks_like_download_source(value: str) -> bool:
-    parts = [part.strip() for part in re.split(r"[,，、]", value) if part.strip()]
+    parts = [part.strip() for part in re.split(r"[_,，、\s]+", value) if part.strip()]
     if not parts:
         return False
+    # Dotted personal names such as ``E.B.White`` or ``T.S.Eliot`` must not be
+    # mistaken for download hostnames.  Real download hostnames are essentially
+    # lowercase, whereas a personal dotted name has an uppercase-initialised
+    # token (``E``/``B``/``White``).  A part that still matches an internet
+    # domain and has no such token is treated as a source hostname.
     domain = re.compile(
         r"(?:https?://)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:/\S*)?", re.I
     )
-    return all(domain.fullmatch(part) is not None for part in parts)
+    for part in parts:
+        if not domain.fullmatch(part):
+            return False
+        tokens = re.split(r"[.\-]", part)
+        if any(token and token[0:1].isupper() for token in tokens):
+            return False
+    return bool(parts)
 
 
 def _clean_download_title(value: str) -> str:
@@ -639,6 +769,27 @@ def _clean_download_title(value: str) -> str:
     return _clean_title(book_title.group(1)) if book_title else cleaned
 
 
+def _has_bare_copy_suffix(value: str) -> bool:
+    """Return whether a trailing ``(2)``-style copy number is attached.
+
+    File managers and OS sync append a parenthetical counter to duplicate
+    files/folders such as ``0022_0(1).mp3``; these must not be read as volume
+    numbers.  A parenthetical preceded by whitespace (``Title (1)``) is kept as
+    a genuine standalone volume number.
+    """
+    return _COPY_SUFFIX_RE.search(value) is not None
+
+
+def _strip_copy_parenthetical(value: str) -> str:
+    """Remove a trailing space-separated copy number such as ``(2)``.
+
+    After an explicit volume marker has been removed, a residual parenthetical
+    number is almost always a duplicate-folder counter (``化学 第4册 (2)``)
+    rather than part of the title.
+    """
+    return re.sub(r"[\s　]*[\(（]\s*\d{1,3}\s*[\)）]\s*$", "", value)
+
+
 def _volume_index(value: str) -> float | None:
     explicit_volume = split_explicit_volume(value)
     if explicit_volume is not None:
@@ -653,6 +804,8 @@ def _volume_index(value: str) -> float | None:
         match = re.search(pattern, value, re.I)
         if match:
             return float(match.group(1))
+    if _has_bare_copy_suffix(value):
+        return None
     numeric_fallback = split_numeric_volume_fallback(value)
     if numeric_fallback is not None:
         return numeric_fallback[1]
@@ -663,7 +816,8 @@ def _strip_volume_suffix(value: str) -> tuple[str, float | None]:
     cleaned = value.strip()
     explicit_volume = split_explicit_volume(cleaned)
     if explicit_volume is not None:
-        return explicit_volume
+        title, volume_index = explicit_volume
+        return _clean_title(_strip_copy_parenthetical(title)), volume_index
     if contains_explicit_volume_range(cleaned):
         return cleaned, None
     patterns = [
@@ -675,6 +829,8 @@ def _strip_volume_suffix(value: str) -> tuple[str, float | None]:
         match = re.match(pattern, cleaned, re.I)
         if match and match.group(1).strip():
             return _clean_title(match.group(1)), float(match.group(2))
+    if _has_bare_copy_suffix(cleaned):
+        return cleaned, None
     numeric_fallback = split_numeric_volume_fallback(cleaned)
     if numeric_fallback is not None:
         title, volume_index = numeric_fallback
@@ -692,6 +848,20 @@ def _directory_title_and_volume(value: str) -> tuple[str, float | None]:
     return _strip_volume_suffix(_clean_title(value))
 
 
+def _grade_directory_volume(value: str) -> float | None:
+    """Return a grade volume for directories such as ``G1``..``G6``.
+
+    Textbook collections (e.g. Wonders) organize files under grade folders.
+    The grade number is used as the volume index so the collection can be
+    grouped while the file keeps its own title.
+    """
+    match = re.fullmatch(r"G(\d{1,2})", value.strip(), re.IGNORECASE)
+    if not match:
+        return None
+    volume_index = float(match.group(1))
+    return volume_index if volume_index > 0 else None
+
+
 def _is_volume_only(value: str) -> bool:
     return bool(
         re.fullmatch(r"\s*(?:vol(?:ume)?\.?|v)\s*\d+(?:\.\d+)?\s*", value, re.I)
@@ -707,6 +877,21 @@ def _clean_title(value: str) -> str:
 
 def _clean_author(value: str) -> str:
     cleaned = _clean_title(value)
+    # Keep only the first author when several are listed with a semicolon
+    # (``Zvi Bodie;Alex Kane;Alan Marcus`` or ``（日）川胜博著；吴宗汉，彭双潮译``).
+    cleaned = cleaned.split(";", 1)[0].split("；", 1)[0]
+    # Strip a leading nationality parenthetical such as ``（日）``.
+    cleaned = re.sub(
+        r"^[\(（]\s*(?:日|美|英|德|法|韩|意|俄|苏)\s*[\)）]", "", cleaned
+    )
+    # Strip trailing translator/editor/author role words (longest first so
+    # ``编著`` collapses entirely rather than leaving ``编``).
+    cleaned = re.sub(
+        r"(?:主编|编译|著者|译者|编写|编著|整理|著|译|编)$", "", cleaned
+    )
+    # Drop ``etc.`` tails left by download sites.
+    cleaned = re.sub(r"[,，]?\s*etc\.?$", "", cleaned, flags=re.IGNORECASE)
+    # Strip any remaining leading parenthetical.
     cleaned = re.sub(r"^[\(（][^)）]+[\)）]\s*", "", cleaned)
     return cleaned.strip()
 

@@ -15,6 +15,7 @@ from typing import Any
 from xml.etree import ElementTree
 
 from app.core.time import now_timestamp_ms
+from app.modules.imports.application.book_categories import categorize_work_tags
 from app.modules.imports.application.dto import (
     ImportOptions,
     ImportResult,
@@ -366,10 +367,22 @@ def _attrs(xml: str, name: str) -> list[dict[str, str]]:
     return output
 
 
+def _parse_tags(value: object) -> list[str]:
+    """Parse a stored ``LibraryWork.tags`` JSON value defensively."""
+    if not value:
+        return []
+    try:
+        parsed = json.loads(str(value))
+    except (TypeError, ValueError):
+        return []
+    return [str(tag) for tag in parsed] if isinstance(parsed, list) else []
+
+
 def _ensure_work(
     store: LibraryImportStore,
     queries: ImportLibraryQueries,
     data: dict[str, Any],
+    logical_path: str | None = None,
 ) -> tuple[dict[str, Any], bool]:
     merge_key = str(data["mergeKey"])
     existing = queries.get_work_by_merge_key(
@@ -390,6 +403,14 @@ def _ensure_work(
                 author=incoming_author,
                 normalizedAuthor=_normalize_key(incoming_author),
             )
+        category_tags = categorize_work_tags(
+            logical_path, title=data.get("title")
+        )
+        if category_tags:
+            existing_tags = _parse_tags(existing.get("tags"))
+            merged_tags = list(dict.fromkeys([*existing_tags, *category_tags]))
+            if merged_tags != existing_tags:
+                columns["tags"] = json.dumps(merged_tags, ensure_ascii=False)
         store.update_library_work(existing["id"], columns=columns)
         return queries.get_work_by_id(str(existing["id"])) or existing, False
     row = store.insert_library_work(
@@ -405,7 +426,19 @@ def _ensure_work(
             "status": "UNREAD",
             "publicationStatus": "UNKNOWN",
             "trackingStatus": "NOT_TRACKING",
-            "tags": json.dumps(data["tags"], ensure_ascii=False),
+            "tags": json.dumps(
+                list(
+                    dict.fromkeys(
+                        [
+                            *data["tags"],
+                            *categorize_work_tags(
+                                logical_path, title=data.get("title")
+                            ),
+                        ]
+                    )
+                ),
+                ensure_ascii=False,
+            ),
             "metadataQuality": 0,
             "organizeStatus": "UNASSESSED",
             "coverStatus": "PENDING",

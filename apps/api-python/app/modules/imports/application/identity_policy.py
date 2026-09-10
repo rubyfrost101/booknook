@@ -174,11 +174,33 @@ def split_numeric_volume_fallback(value: str) -> tuple[str, float] | None:
     for match in re.finditer(rf"(?<!\d)({_SHORT_VOLUME_NUMBER})(?!\d)", cleaned):
         if source_suffix_start is not None and match.start() >= source_suffix_start:
             continue
+        if _belongs_to_edition_marker(cleaned, match.start(), match.end()):
+            continue
         volume_index = float(match.group(1))
         title = _title_without_marker(cleaned, match.start(), match.end())
         if volume_index > 0 and title:
             return title, volume_index
     return None
+
+
+def _belongs_to_edition_marker(value: str, start: int, end: int) -> bool:
+    """Return whether the matched number is an edition ordinal.
+
+    Edition markers are not publication volumes: ``数理化自学丛书第2版`` and
+    ``Lehninger Principles of Biochemistry, 8th Edition`` must keep their
+    numbers rather than losing them to the volume fallback.
+    """
+    if end >= len(value):
+        return False
+    if value[start - 1 : start] == "\u7b2c" and value[end] == "\u7248":
+        return True  # 第2版
+    return bool(
+        re.match(
+            r"(?:st|nd|rd|th)\s*(?:edition|ed)\b",
+            value[end:],
+            re.IGNORECASE,
+        )
+    )
 
 
 def _download_source_suffix_start(value: str) -> int | None:

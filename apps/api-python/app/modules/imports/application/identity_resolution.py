@@ -33,6 +33,42 @@ _UNKNOWN_VALUES = {
     "未知作者",
     "佚名",
 }
+_JUNK_EMBEDDED_TITLES = {
+    "无标题",
+    "封面页",
+    "书名",
+    "未命名",
+    "新建文档",
+    "文档",
+    "untitled",
+    "unknown",
+    "unknown document",
+}
+_JUNK_EMBEDDED_AUTHORS = {
+    "administrator",
+    "weiyayun",
+    "dtpmac17",
+    "no129231",
+    "tsi",
+    "pdfroom",
+    "prereader",
+    "studentedition",
+    "ad",
+    "history",
+    "hbcimp1",
+    "佚名",
+    "unknown",
+    "unknownauthor",
+    "未知",
+    "未知作者",
+    "na",
+    "none",
+}
+_DOWNLOAD_SOURCE_TITLE_RE = re.compile(
+    r"(?:z[- ]?lib(?:rary)?|libgen|oceanofpdf|b-ok|bookzz|anna['’]?s? archive)",
+    re.IGNORECASE,
+)
+_HEX_DUMP_RE = re.compile(r"<[0-9a-fA-F]{6,}>")
 
 
 def resolve_import_metadata(
@@ -61,7 +97,10 @@ def resolve_import_metadata(
     if embedded is not None:
         candidates.append(
             LocalMetadataCandidate(
-                source="EMBEDDED", metadata=_normalize_source_metadata(embedded)
+                source="EMBEDDED",
+                metadata=_normalize_source_metadata(
+                    _sanitize_embedded_metadata(embedded)
+                ),
             )
         )
     if sidecar is not None:
@@ -162,10 +201,89 @@ def _legacy_path_metadata(
     )
 
 
+def _sanitize_embedded_metadata(
+    metadata: PublicationMetadata,
+) -> PublicationMetadata:
+    """Drop confidence-lowering junk from file-embedded metadata.
+
+    Files often ship internal metadata with placeholder/source values
+    (``无标题``, ``Administrator``, an ``E.B.White``-style author mis-parsed as a
+    download domain, or a ``Z-Library`` residue).  These should never overwrite
+    a cleaner path-derived title/author, so the offending fields are dropped
+    and the PATH candidate falls back naturally.
+
+    ``title`` and ``volume_title`` are judged independently: EPUB parsers put
+    volume-label titles (``第二卷``) into ``volume_title`` while leaving
+    ``title`` unset, so a missing ``title`` must not discard a valid
+    ``volume_title``.
+    """
+    title = _clean_value(metadata.title)
+    title_junk = bool(title) and _embedded_title_is_junk(title)
+    volume_title = _clean_value(metadata.volume_title)
+    volume_title_junk = bool(volume_title) and _embedded_title_is_junk(
+        volume_title
+    )
+    authors = tuple(_clean_value(author) for author in metadata.authors)
+    authors = tuple(author for author in authors if author)
+    author_junk = any(_embedded_author_is_junk(author) for author in authors)
+    if title_junk:
+        title = None
+    if volume_title_junk:
+        volume_title = None
+    if author_junk:
+        authors = ()
+    if not title_junk and not volume_title_junk and not author_junk:
+        return metadata
+    return replace(
+        metadata,
+        title=title,
+        volume_title=volume_title,
+        authors=authors,
+    )
+
+
+def _embedded_title_is_junk(value: str | None) -> bool:
+    if not value:
+        return True
+    key = _identity_key(value)
+    if key in _JUNK_EMBEDDED_TITLE_KEYS:
+        return True
+    if _HEX_DUMP_RE.search(value):
+        return True
+    if _DOWNLOAD_SOURCE_TITLE_RE.search(value):
+        return True
+    # Filename-shaped titles such as ``Elements_Pics-chinese-final`` are not
+    # real publication titles; a path-derived title is preferred.
+    if "_" in value:
+        return True
+    return False
+
+
+def _embedded_author_is_junk(value: str | None) -> bool:
+    if not value:
+        return True
+    key = _identity_key(value)
+    if key in _JUNK_EMBEDDED_AUTHOR_KEYS:
+        return True
+    if _HEX_DUMP_RE.search(value):
+        return True
+    # Pure ASCII, dot-abbreviated tokens such as ``E.B.White`` were being
+    # mistaken for download-source domains; treat multi-token dotted names as
+    # credible authors rather than junk.
+    if re.search(r"[a-z]", value, re.IGNORECASE) and re.search(r"\.", value):
+        return False
+    # Single-token pinyin/system usernames and identifiers.
+    if re.fullmatch(r"[a-z0-9]{2,}", value):
+        return True
+    # Symbols only (``~ ~``). CJK names are real characters, not junk.
+    if not re.search(r"[A-Za-z0-9\u4e00-\u9fff]", value):
+        return True
+    return False
+
+
 def _normalize_source_metadata(
     metadata: PublicationMetadata,
 ) -> PublicationMetadata:
-    """Normalize compatibility candidates before any cross-source comparison."""
 
     if metadata.volume_title is not None or metadata.title is None:
         return metadata
@@ -271,6 +389,16 @@ def _clean_value(value: object) -> str:
 def _identity_key(value: object) -> str:
     normalized = unicodedata.normalize("NFKC", str(value or "")).casefold()
     return re.sub(r"[\s._\-()/（）]+", "", normalized)
+
+
+# Precomputed junk keys: building these per call would re-normalize every
+# element (NFKC + regex) for each of the tens of thousands of per-file checks.
+_JUNK_EMBEDDED_TITLE_KEYS = frozenset(
+    _identity_key(value) for value in _JUNK_EMBEDDED_TITLES
+)
+_JUNK_EMBEDDED_AUTHOR_KEYS = frozenset(
+    _identity_key(value) for value in _JUNK_EMBEDDED_AUTHORS
+)
 
 
 def _confidence(value: float) -> float:

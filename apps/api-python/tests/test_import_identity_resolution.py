@@ -174,3 +174,86 @@ def test_complete_path_snapshot_is_not_split_or_rewritten_again(
     assert identity.title == "作品"
     assert resolved.metadata.volume_title == volume_title
     assert resolved.metadata.volume_index == volume_index
+
+
+def test_embedded_junk_author_falls_back_to_path_author() -> None:
+    identity, resolved = resolve_import_metadata(
+        _path_identity(title="路径作品", author="梁宁", volume_index=9),
+        embedded=PublicationMetadata(
+            title="内嵌作品",
+            authors=("Administrator",),
+            volume_index=8,
+        ),
+        sidecar=None,
+        source_order=("PATH", "EMBEDDED", "SIDECAR_OPF"),
+    )
+
+    assert (identity.title, identity.author) == ("路径作品", "梁宁")
+    assert resolved.source_for("author") == "PATH"
+
+
+def test_embedded_junk_title_and_author_fall_back_to_path_identity() -> None:
+    identity, resolved = resolve_import_metadata(
+        _path_identity(title="真需求", author="梁宁"),
+        embedded=PublicationMetadata(
+            title="真需求 (梁宁) (Z-Library)",
+            authors=("未知作者",),
+        ),
+        sidecar=None,
+        source_order=("PATH", "EMBEDDED", "SIDECAR_OPF"),
+    )
+
+    assert (identity.title, identity.author) == ("真需求", "梁宁")
+    assert resolved.source_for("title") == "PATH"
+    assert resolved.source_for("author") == "PATH"
+
+
+def test_embedded_junk_fields_do_not_block_valid_embedded_author() -> None:
+    identity, resolved = resolve_import_metadata(
+        _path_identity(title="Charlotte's Web", author="未知作者"),
+        embedded=PublicationMetadata(
+            title="Charlotte's Web",
+            authors=("E. B. White",),
+        ),
+        sidecar=None,
+        source_order=("PATH", "EMBEDDED", "SIDECAR_OPF"),
+    )
+
+    assert (identity.title, identity.author) == ("Charlotte's Web", "E. B. White")
+    assert resolved.source_for("author") == "EMBEDDED"
+
+
+@pytest.mark.parametrize(
+    ("title", "author"),
+    [
+        ("无标题", "weiyayun"),
+        ("封面页", "DTPMac17"),
+        ("书名", "NO129231"),
+        ("<B4F3BBB0CAFDBEDDBDE1B9B92E706466>", "~ ~"),
+        ("元素周期表", "tsi"),
+    ],
+)
+def test_embedded_placeholder_values_fall_back_to_path_identity(
+    title: str, author: str,
+) -> None:
+    identity, _resolved = resolve_import_metadata(
+        _path_identity(title="元素周期表", author="未知作者"),
+        embedded=PublicationMetadata(title=title, authors=(author,)),
+        sidecar=None,
+        source_order=("PATH", "EMBEDDED", "SIDECAR_OPF"),
+    )
+
+    assert (identity.title, identity.author) == ("元素周期表", "未知作者")
+
+
+def test_embedded_filename_title_falls_back_but_keeps_real_author() -> None:
+    identity, _resolved = resolve_import_metadata(
+        _path_identity(title="元素周期表", author="未知作者"),
+        embedded=PublicationMetadata(
+            title="Elements_Pics-chinese-final", authors=("Keith Enevoldsen",)
+        ),
+        sidecar=None,
+        source_order=("PATH", "EMBEDDED", "SIDECAR_OPF"),
+    )
+
+    assert (identity.title, identity.author) == ("元素周期表", "Keith Enevoldsen")

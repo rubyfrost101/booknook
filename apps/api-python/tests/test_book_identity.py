@@ -250,6 +250,97 @@ def test_download_filename_rule_requires_a_domain_source_suffix():
     assert identity.author == UNKNOWN_AUTHOR
 
 
+@pytest.mark.parametrize(
+    ("logical_path", "expected_title", "expected_author", "expected_volume"),
+    [
+        (
+            "电子书/真需求 (梁宁) (Z-Library).epub",
+            "真需求",
+            "梁宁",
+            None,
+        ),
+        (
+            "电子书/Charlottes Web (E. B. White) (Z-Library).pdf",
+            "Charlottes Web",
+            "E. B. White",
+            None,
+        ),
+        (
+            "电子书/Charlottes Web (E.B.White) (Z-Library).epub",
+            "Charlottes Web",
+            "E.B.White",
+            None,
+        ),
+        (
+            "电子书/Hillbilly Elegy (J. D. Vance) (Z-Library) (2).pdf",
+            "Hillbilly Elegy",
+            "J. D. Vance",
+            None,
+        ),
+        (
+            "电子书/白夜行_(东野圭吾)_(z-library.sk_1lib.sk_z-lib.sk).epub",
+            "白夜行",
+            "东野圭吾",
+            None,
+        ),
+        (
+            "电子书/股票投资要义-(胡斐)-2015.pdf",
+            "股票投资要义",
+            "胡斐",
+            None,
+        ),
+    ],
+)
+def test_regex_identity_cleans_download_source_and_extracts_author(
+    logical_path, expected_title, expected_author, expected_volume
+):
+    identity = recognize_book_identity_with_regex(logical_path)
+
+    assert (identity.title, identity.author, identity.volume_index) == (
+        expected_title,
+        expected_author,
+        expected_volume,
+    )
+    assert identity.source == "regex"
+
+
+def test_dotted_author_names_are_not_mistaken_for_download_hostnames():
+    assert not book_identity._looks_like_download_source("E.B.White")
+    assert not book_identity._looks_like_download_source("T.S.Eliot")
+    assert not book_identity._looks_like_download_source("E. B. White")
+    assert book_identity._looks_like_download_source("z-lib.sk")
+    assert book_identity._looks_like_download_source("libgen.is")
+    assert book_identity._looks_like_download_source("ebooks.example.com")
+
+
+def test_regex_identity_keeps_plain_volume_parenthetical():
+    identity = recognize_book_identity_with_regex(
+        "漫画/[FX戦士久留美][ですにゃん×荒酸だいすき][角川][Vol.01-Vol.05][未完]/FX戦士久留美 (1).zip"
+    )
+
+    assert identity.volume_index == 1
+    assert identity.title == "FX戦士久留美"
+
+
+def test_regex_identity_uses_grade_directory_as_volume():
+    identity = recognize_book_identity_with_regex(
+        "Wonders/G2/g2 vocabulary cards.pdf"
+    )
+
+    assert identity.title == "g2 vocabulary cards"
+    assert identity.author == UNKNOWN_AUTHOR
+    assert identity.volume_index == 2
+    assert identity.source == "regex"
+
+
+def test_regex_identity_keeps_file_volume_over_grade_directory():
+    identity = recognize_book_identity_with_regex(
+        "Wonders/G6/Unit 3 Week 2 03.pdf"
+    )
+
+    assert identity.volume_index == 3
+
+
 def test_regex_identity_uses_parent_for_volume_only_filename():
     identity = recognize_book_identity_with_regex(
         "漫画/[齐木楠雄的灾难][麻生周一]/Vol.05.cbz"
@@ -664,3 +755,99 @@ def test_disabled_ai_never_calls_the_gateway(
 
     assert identity.source == "regex"
     assert (identity.title, identity.author) == ("活着", UNKNOWN_AUTHOR)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "0022_0(1)",
+        "6.6_20(1)",
+        "RD14_SA_232_0232_N_EQ(1)",
+        "1000英语词汇(2)",
+    ],
+)
+def test_attached_parenthetical_digit_is_a_copy_suffix_not_volume(value):
+    assert book_identity._volume_index(value) is None
+    _title, volume = book_identity._strip_volume_suffix(value)
+    assert volume is None
+
+
+def test_space_separated_parenthetical_digit_remains_a_volume():
+    assert book_identity._volume_index("FX戦士久留美 (1)") == 1
+
+
+def test_volume_directory_title_drops_residual_copy_suffix():
+    title, volume = book_identity._strip_volume_suffix(
+        "数理化自学丛书第2版 化学 第4册 (2)"
+    )
+
+    assert title == "数理化自学丛书第2版 化学"
+    assert volume == 4
+
+
+def test_regex_identity_audio_copy_number_keeps_grade_directory_volume():
+    identity = recognize_book_identity_with_regex(
+        "Wonders/G2/G2 Literature Anthology/Literature Anthology G2 MP3/0022_0(1).mp3"
+    )
+
+    assert identity.volume_index == 2
+    assert "0022" in identity.title
+
+
+def test_regex_identity_attached_copy_number_is_not_volume_without_grade_dir():
+    identity = recognize_book_identity_with_regex(
+        "21 Grammar in use/02 中级 第5版 （2019最新）/中级音频/"
+        "appendixes audio/Appendixe-6/6.6_20(1).mp3"
+    )
+
+    assert identity.volume_index is None
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (
+            "（日）川胜博著；吴宗汉，彭双潮译, (日)川胜博著 , 吴宗汉, 彭双潮译, 川胜博, 吴崇汉 etc.",
+            "川胜博",
+        ),
+        ("Zvi Bodie;Alex Kane;Alan Marcus;", "Zvi Bodie"),
+        ("（英）阿加莎·克里斯蒂", "阿加莎·克里斯蒂"),
+        ("[英]菲利普•普尔曼(Philip Pullman)", "[英]菲利普•普尔曼(Philip Pullman)"),
+        ("汪曾祺 编", "汪曾祺"),
+        ("余华", "余华"),
+    ],
+)
+def test_clean_author_extracts_primary_author(value, expected):
+    assert book_identity._clean_author(value) == expected
+
+
+def test_regex_identity_cleans_download_author_blob():
+    identity = recognize_book_identity_with_regex(
+        "monitor/川胜教授的中学物理教案 上、下 "
+        "(（日）川胜博著；吴宗汉，彭双潮译, (日)川胜博著 , 吴宗汉, 彭双潮译, 川胜博, 吴崇汉 etc.) "
+        "(Z-Library).pdf"
+    )
+
+    assert identity.title == "川胜教授的中学物理教案 上、下"
+    assert identity.author == "川胜博"
+    assert identity.volume_index is None
+
+
+def test_regex_identity_keeps_chinese_edition_number_out_of_volume():
+    identity = recognize_book_identity_with_regex(
+        "数理化自学丛书-第二版/数理化自学丛书第2版 - 佚名.pdf"
+    )
+
+    assert identity.title == "数理化自学丛书第2版"
+    assert identity.volume_index is None
+
+
+def test_regex_identity_keeps_english_edition_ordinal():
+    identity = recognize_book_identity_with_regex(
+        "Lehninger Principles of Biochemistry, 8th Edition "
+        "(David L. Nelson, Michael M. Cox etc.) (Z-Library).pdf"
+    )
+
+    assert identity.title == "Lehninger Principles of Biochemistry, 8th Edition"
+    assert identity.author == "David L. Nelson, Michael M. Cox"
+    assert identity.volume_index is None

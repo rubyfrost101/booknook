@@ -328,6 +328,7 @@ def _import_reflowable_source(
             "origin": options.origin,
             "monitorFolderId": options.monitor_folder_id,
         },
+        logical_path=str(options.source_file_path),
     )
     volume_title = resolved_local.metadata.volume_title or identity.title
     volume_index = identity.volume_index

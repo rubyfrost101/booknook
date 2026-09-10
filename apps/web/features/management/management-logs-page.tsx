@@ -264,7 +264,7 @@ export function ManagementLogsPage({ embedded = false }: { embedded?: boolean })
 
   return (
     <div className={embedded ? 'space-y-4' : 'space-y-6'}>
-      {!embedded ? <PageTitle title={i18nAttribute("系统日志")} desc={i18nAttribute("按级别、来源、日期和关键字查看系统事件。")} action={<div className="flex items-center gap-2"><Button variant="secondary" icon={Download} loading={exportingBooks} loadingText={i18nAttribute("导出中")} onClick={() => void exportLibraryBooks()}><I18nText>导出图书清单</I18nText></Button><Button variant="secondary" icon={RefreshCw} loading={loading} loadingText={i18nAttribute("刷新中")} onClick={() => void load()}><I18nText>刷新</I18nText></Button></div>} /> : null}
+      {!embedded ? <PageTitle title={i18nAttribute("系统日志")} desc={i18nAttribute("按级别、来源、日期和关键字查看系统事件。")} action={<Button variant="secondary" icon={RefreshCw} loading={loading} loadingText={i18nAttribute("刷新中")} onClick={() => void load()}><I18nText>刷新</I18nText></Button>} /> : null}
       {!embedded ? <ManagementNav /> : null}
 
       <section className="rounded-[22px] border border-[#DEDAD4] bg-white p-4 sm:p-5" aria-labelledby="log-storage-title">
@@ -300,6 +300,7 @@ export function ManagementLogsPage({ embedded = false }: { embedded?: boolean })
               />
             </label>
             <Button variant="secondary" icon={Save} loading={savingLimit} loadingText={i18nAttribute("保存中")} onClick={() => void saveLogLimit()}><I18nText>保存</I18nText></Button>
+            <Button variant="secondary" icon={Download} loading={exportingBooks} loadingText={i18nAttribute("导出中")} onClick={() => void exportLibraryBooks()}><I18nText>导出图书清单</I18nText></Button>
           </div>
         </div>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#EEEAE6]">

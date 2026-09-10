@@ -1,4 +1,4 @@
-name: Build and release Docker image
+name: Build and release fnOS application package
 
 on:
   pull_request:
@@ -44,9 +44,13 @@ on:
 permissions:
   contents: read
 
+env:
+  FNPACK_VERSION: '1.2.3'
+  FNPACK_SHA256: '54b97fa7b70968c4d05c79840f5daeff508957d0bb2062fdb0376d00d9615c93'
+
 jobs:
   validate:
-    name: Validate release notes and Web quality gates
+    name: Validate fnOS package templates
     runs-on: ubuntu-latest
 
     steps:
@@ -91,6 +95,11 @@ jobs:
           pnpm --filter @booknook/web test
           pnpm --filter @booknook/web i18n:check
           pnpm --filter @booknook/web build
+
+      - name: Validate fnOS package templates
+        env:
+          FNOS_VALIDATE_ONLY: 'true'
+        run: scripts/build-fnos-package.sh
 
   publish-prod-image:
     name: Publish prod Docker image
@@ -176,7 +185,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=develop-image
 
   package:
-    name: Publish release Docker image
+    name: Build fnOS FPK
     if: github.event_name != 'pull_request' && github.ref != 'refs/heads/prod' && github.ref != 'refs/heads/develop'
     needs: validate
     runs-on: ubuntu-latest
@@ -279,6 +288,36 @@ jobs:
           labels: ${{ steps.docker_meta.outputs.labels }}
           cache-from: type=gha,scope=fnos-versioned-image
           cache-to: type=gha,mode=max,scope=fnos-versioned-image
+
+      - name: Install official fnpack
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/fnpack" \
+            "https://static2.fnnas.com/fnpack/fnpack-${FNPACK_VERSION}-linux-amd64"
+          echo "${FNPACK_SHA256}  $RUNNER_TEMP/fnpack" | sha256sum --check --strict
+          chmod +x "$RUNNER_TEMP/fnpack"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/fnpack" --help >/dev/null
+
+      - name: Build fnOS package
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app_version }}
+        run: scripts/build-fnos-package.sh
+
+      - name: Upload fnOS package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: booknook-fnos-${{ steps.version.outputs.app_version }}-all
+          path: dist/fnos/*.fpk
+          if-no-files-found: error
+
+      - name: Upload fnOS package to Draft Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
+        run: gh release upload "$RELEASE_TAG" dist/fnos/*.fpk --clobber
 
       - name: Verify and publish strict bilingual Release
         if: github.ref_type == 'tag'

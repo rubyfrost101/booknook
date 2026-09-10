@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "repository": "rubyfrost101/booknook",
+  "releases": [
+    {
+      "version": "0.1.2",
+      "tag": "v0.1.2",
+      "publishedAt": "2026-09-10T00:00:00Z",
+      "notesPath": "v0.1.2.md",
+      "releaseUrl": "https://github.com/rubyfrost101/booknook/releases/tag/v0.1.2"
+    },
+    {
+      "version": "0.1.1",
+      "tag": "v0.1.1",
+      "publishedAt": "2026-09-09T00:00:00Z",
+      "notesPath": "v0.1.1.md",
+      "releaseUrl": "https://github.com/rubyfrost101/booknook/releases/tag/v0.1.1"
+    },
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "publishedAt": "2026-09-08T00:00:00Z",
+      "notesPath": "v0.1.0.md",
+      "releaseUrl": "https://github.com/rubyfrost101/booknook/releases/tag/v0.1.0"
+    }
+  ]
+}

@@ -151,7 +151,7 @@
   "安装新版前端资源超时": "Installing the frontend update timed out",
   "按丛书系列浏览书库中的图书。": "Browse your library by series.",
   "按当前规则，书库中有": "According to the current rules, in the library",
-  "按规范化后的标题与作者识别候选。合并只移动媒介版本、卷册、进度与书架关系，不删除源文件。": "Candidates are identified by normalized title and author. Merging moves media versions, volumes, progress, and shelf relationships without deleting source files.",
+  "按标题、作者做模糊查重，识别同书多格式（PDF/EPUB）、不同版本与不同翻译的重复文件。合并只移动媒介版本、卷册、进度与书架关系，不删除源文件。": "Fuzzy matching on title and author finds the same book across formats (PDF/EPUB), editions, and translations. Merging moves media versions, volumes, progress, and shelf relationships without deleting source files.",
   "按规则跳过：": "Skip by Standard:",
   "按级别、来源、日期和关键字查看系统事件。": "View system events by level, source, date and keyword.",
   "按书名、作者或标签搜索，勾选后随书架一起保存。": "Search by book name, author or label and save with the shelf after a check.",

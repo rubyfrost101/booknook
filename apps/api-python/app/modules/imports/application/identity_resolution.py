@@ -70,6 +70,10 @@ _DOWNLOAD_SOURCE_TITLE_RE = re.compile(
 )
 _HEX_DUMP_RE = re.compile(r"<[0-9a-fA-F]{6,}>")
 
+# _identity_key / _clean_value 每文件调用数万次，模块级编译避免每次走 re 缓存
+_IDENTITY_KEY_STRIP_RE = re.compile(r"[\s._\-()/（）]+")
+_WS_COLLAPSE_RE = re.compile(r"\s+")
+
 
 def resolve_import_metadata(
     path_identity: BookIdentityDTO,
@@ -383,12 +387,12 @@ def _valid_author(value: object) -> str | None:
 
 
 def _clean_value(value: object) -> str:
-    return re.sub(r"\s+", " ", str(value or "")).strip()
+    return _WS_COLLAPSE_RE.sub(" ", str(value or "")).strip()
 
 
 def _identity_key(value: object) -> str:
     normalized = unicodedata.normalize("NFKC", str(value or "")).casefold()
-    return re.sub(r"[\s._\-()/（）]+", "", normalized)
+    return _IDENTITY_KEY_STRIP_RE.sub("", normalized)
 
 
 # Precomputed junk keys: building these per call would re-normalize every

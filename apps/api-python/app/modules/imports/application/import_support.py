@@ -87,6 +87,16 @@ def _normalize_key(value: Any) -> str:
     return normalize_identity_part(value)
 
 
+# 判空作者集合（_author_is_missing 每本书导入都会调用，模块级避免重复构造）
+_MISSING_AUTHOR_KEYS = frozenset(
+    {
+        "",
+        _normalize_key(UNKNOWN_AUTHOR),
+        _normalize_key("Unknown author"),
+    }
+)
+
+
 def _work_merge_key(title: str) -> str:
     return resolve_work_identity(title=title).merge_key
 
@@ -453,12 +463,7 @@ def _ensure_work(
 
 
 def _author_is_missing(value: object) -> bool:
-    normalized = _normalize_key(value)
-    return normalized in {
-        "",
-        _normalize_key(UNKNOWN_AUTHOR),
-        _normalize_key("Unknown author"),
-    }
+    return _normalize_key(value) in _MISSING_AUTHOR_KEYS
 
 
 def _preferred_work_cover_path(

@@ -32,6 +32,46 @@ IDENTITY_PARSER_VERSION = 11
 # copy suffix is detected by the lack of whitespace before the parenthesis.
 _COPY_SUFFIX_RE = re.compile(r"[^\s(（][\(（]\s*\d{1,3}\s*[\)）]\s*$")
 
+# 下载源域名（_looks_like_download_source 高频调用，模块级避免每次重编译）
+_DOWNLOAD_DOMAIN_RE = re.compile(
+    r"(?:https?://)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:/\S*)?", re.I
+)
+
+# 下载版标题中的版本/整理标记（_clean_download_title 高频调用）
+_DOWNLOAD_EDITION_MARKER_RE = re.compile(
+    r"校[对對訂订]|精校|全本|完整版|完[结結]|番外|修[订訂]|珍藏|典藏|插[图圖]|实[体體]|增[补補]|全集",
+    re.I,
+)
+
+_BOOK_TITLE_BRACKETS_RE = re.compile(r"《\s*(.+?)\s*》")
+
+# 剥离尾部空格分隔的副本序号括号（如「化学 第4册 (2)」）
+_COPY_PARENTHETICAL_RE = re.compile(r"[\s　]*[\(（]\s*\d{1,3}\s*[\)）]\s*$")
+
+# normalize_identity_part 全书调用最频繁，模块级编译避免每次字符串模式走 re 缓存
+_NORMALIZE_PUNCTUATION_RE = re.compile(
+    r"[\s_\-.[\]()（）【】《》:：,，!！?？\"'“”‘’·・、/\\]+"
+)
+
+# _clean_author 每本书的作者清理都会调用，预编译避免每次走 re 缓存
+_LEADING_NATIONALITY_RE = re.compile(
+    r"^[\(（]\s*(?:日|美|英|德|法|韩|意|俄|苏)\s*[\)）]"
+)
+_TRAILING_ROLE_WORD_RE = re.compile(r"(?:主编|编译|著者|译者|编写|编著|整理|著|译|编)$")
+_ETC_TAIL_RE = re.compile(r"[,，]?\s*etc\.?$", re.IGNORECASE)
+_LEADING_PARENTHETICAL_RE = re.compile(r"^[\(（][^)）]+[\)）]\s*")
+
+# _clean_title 每个标题都会调用，预编译避免每次走 re 缓存
+_TRAILING_EBOOK_EXT_RE = re.compile(
+    r"\.(?:epub|cbz|zip|pdf|m4b|m4a|mp3)$", re.IGNORECASE
+)
+_WS_COLLAPSE_RE = re.compile(r"\s+")
+
+_VOLUME_ONLY_LATIN_RE = re.compile(r"\s*(?:vol(?:ume)?\.?|v)\s*\d+(?:\.\d+)?\s*", re.I)
+_VOLUME_ONLY_CJK_RE = re.compile(
+    r"\s*第?\s*\d+(?:\.\d+)?\s*(?:卷|冊|册|集)\s*", re.I
+)
+
 
 @dataclass(frozen=True)
 class BookIdentity:
@@ -69,9 +109,7 @@ class BookIdentity:
 
 def normalize_identity_part(value: Any) -> str:
     normalized = unicodedata.normalize("NFKC", str(value or "")).lower()
-    return re.sub(
-        r"[\s_\-.[\]()（）【】《》:：,，!！?？\"'“”‘’·・、/\\]+", "", normalized
-    ).strip()
+    return _NORMALIZE_PUNCTUATION_RE.sub("", normalized).strip()
 
 
 def identity_merge_key(title: str, author: str | None) -> str:
@@ -741,11 +779,8 @@ def _looks_like_download_source(value: str) -> bool:
     # lowercase, whereas a personal dotted name has an uppercase-initialised
     # token (``E``/``B``/``White``).  A part that still matches an internet
     # domain and has no such token is treated as a source hostname.
-    domain = re.compile(
-        r"(?:https?://)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:/\S*)?", re.I
-    )
     for part in parts:
-        if not domain.fullmatch(part):
+        if not _DOWNLOAD_DOMAIN_RE.fullmatch(part):
             return False
         tokens = re.split(r"[.\-]", part)
         if any(token and token[0:1].isupper() for token in tokens):
@@ -755,17 +790,13 @@ def _looks_like_download_source(value: str) -> bool:
 
 def _clean_download_title(value: str) -> str:
     cleaned = value.strip()
-    edition_markers = re.compile(
-        r"校[对對訂订]|精校|全本|完整版|完[结結]|番外|修[订訂]|珍藏|典藏|插[图圖]|实[体體]|增[补補]|全集",
-        re.I,
-    )
     while True:
         prefix, note = _split_trailing_parenthetical(cleaned)
-        if not note or not edition_markers.search(note):
+        if not note or not _DOWNLOAD_EDITION_MARKER_RE.search(note):
             break
         cleaned = prefix
     cleaned = _clean_title(cleaned)
-    book_title = re.fullmatch(r"《\s*(.+?)\s*》", cleaned)
+    book_title = _BOOK_TITLE_BRACKETS_RE.fullmatch(cleaned)
     return _clean_title(book_title.group(1)) if book_title else cleaned
 
 
@@ -787,7 +818,7 @@ def _strip_copy_parenthetical(value: str) -> str:
     number is almost always a duplicate-folder counter (``化学 第4册 (2)``)
     rather than part of the title.
     """
-    return re.sub(r"[\s　]*[\(（]\s*\d{1,3}\s*[\)）]\s*$", "", value)
+    return _COPY_PARENTHETICAL_RE.sub("", value)
 
 
 def _volume_index(value: str) -> float | None:
@@ -864,15 +895,15 @@ def _grade_directory_volume(value: str) -> float | None:
 
 def _is_volume_only(value: str) -> bool:
     return bool(
-        re.fullmatch(r"\s*(?:vol(?:ume)?\.?|v)\s*\d+(?:\.\d+)?\s*", value, re.I)
-        or re.fullmatch(r"\s*第?\s*\d+(?:\.\d+)?\s*(?:卷|冊|册|集)\s*", value, re.I)
+        _VOLUME_ONLY_LATIN_RE.fullmatch(value)
+        or _VOLUME_ONLY_CJK_RE.fullmatch(value)
     )
 
 
 def _clean_title(value: str) -> str:
     # Preserve display punctuation. NFKC is applied only to the identity key.
-    cleaned = re.sub(r"\.(?:epub|cbz|zip|pdf|m4b|m4a|mp3)$", "", value, flags=re.I)
-    return re.sub(r"\s+", " ", cleaned.replace("_", " ")).strip(" ._-")
+    cleaned = _TRAILING_EBOOK_EXT_RE.sub("", value)
+    return _WS_COLLAPSE_RE.sub(" ", cleaned.replace("_", " ")).strip(" ._-")
 
 
 def _clean_author(value: str) -> str:
@@ -881,18 +912,14 @@ def _clean_author(value: str) -> str:
     # (``Zvi Bodie;Alex Kane;Alan Marcus`` or ``（日）川胜博著；吴宗汉，彭双潮译``).
     cleaned = cleaned.split(";", 1)[0].split("；", 1)[0]
     # Strip a leading nationality parenthetical such as ``（日）``.
-    cleaned = re.sub(
-        r"^[\(（]\s*(?:日|美|英|德|法|韩|意|俄|苏)\s*[\)）]", "", cleaned
-    )
+    cleaned = _LEADING_NATIONALITY_RE.sub("", cleaned)
     # Strip trailing translator/editor/author role words (longest first so
     # ``编著`` collapses entirely rather than leaving ``编``).
-    cleaned = re.sub(
-        r"(?:主编|编译|著者|译者|编写|编著|整理|著|译|编)$", "", cleaned
-    )
+    cleaned = _TRAILING_ROLE_WORD_RE.sub("", cleaned)
     # Drop ``etc.`` tails left by download sites.
-    cleaned = re.sub(r"[,，]?\s*etc\.?$", "", cleaned, flags=re.IGNORECASE)
+    cleaned = _ETC_TAIL_RE.sub("", cleaned)
     # Strip any remaining leading parenthetical.
-    cleaned = re.sub(r"^[\(（][^)）]+[\)）]\s*", "", cleaned)
+    cleaned = _LEADING_PARENTHETICAL_RE.sub("", cleaned)
     return cleaned.strip()
 
 

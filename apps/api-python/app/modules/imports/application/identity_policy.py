@@ -52,6 +52,19 @@ _VOLUME_RANGE_START_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# normalize_identity_part 每本书记录都会多次调用，模块级编译避免每次走 re 缓存
+_NORMALIZE_PUNCTUATION_RE = re.compile(
+    r"[\s_\-.[\]()（）【】《》:：,，!！?？\"'“”‘’·・、/\\]+"
+)
+# 目录合并键中的数字占位（normalize_directory_merge_title 高频调用）
+_NUMBER_PLACEHOLDER_RE = re.compile(r"\d+")
+# _clean_title / _clean_author 每个标题都会调用，预编译避免每次走 re 缓存
+_TRAILING_EBOOK_EXT_RE = re.compile(
+    r"\.(?:epub|cbz|zip|pdf|m4b|m4a|mp3)$", re.IGNORECASE
+)
+_WS_COLLAPSE_RE = re.compile(r"\s+")
+_LEADING_PARENTHETICAL_RE = re.compile(r"^[\(（][^)）]+[\)）]\s*")
+
 
 def contains_explicit_volume_range(value: str) -> bool:
     """Return whether a title describes a range rather than one volume."""
@@ -214,11 +227,7 @@ def _download_source_suffix_start(value: str) -> int | None:
 
 def normalize_identity_part(value: object) -> str:
     normalized = unicodedata.normalize("NFKC", str(value or "")).lower()
-    return re.sub(
-        r"[\s_\-.[\]()（）【】《》:：,，!！?？\"'“”‘’·・、/\\]+",
-        "",
-        normalized,
-    ).strip()
+    return _NORMALIZE_PUNCTUATION_RE.sub("", normalized).strip()
 
 
 def normalize_directory_merge_title(value: object) -> str:
@@ -229,7 +238,7 @@ def normalize_directory_merge_title(value: object) -> str:
     titles and non-watched identities keep their original numbers.
     """
 
-    return re.sub(r"\d+", "{number}", normalize_identity_part(value))
+    return _NUMBER_PLACEHOLDER_RE.sub("{number}", normalize_identity_part(value))
 
 
 def directory_merge_title_similarity(left: object, right: object) -> float:
@@ -350,16 +359,11 @@ def _strip_volume_suffix(value: str) -> tuple[str, float | None]:
 
 
 def _clean_title(value: str) -> str:
-    cleaned = re.sub(
-        r"\.(?:epub|cbz|zip|pdf|m4b|m4a|mp3)$",
-        "",
-        value,
-        flags=re.IGNORECASE,
-    )
-    return re.sub(r"\s+", " ", cleaned.replace("_", " ")).strip(" ._-")
+    cleaned = _TRAILING_EBOOK_EXT_RE.sub("", value)
+    return _WS_COLLAPSE_RE.sub(" ", cleaned.replace("_", " ")).strip(" ._-")
 
 
 def _clean_author(value: str) -> str:
     cleaned = _clean_title(value)
-    cleaned = re.sub(r"^[\(（][^)）]+[\)）]\s*", "", cleaned)
+    cleaned = _LEADING_PARENTHETICAL_RE.sub("", cleaned)
     return cleaned.strip()

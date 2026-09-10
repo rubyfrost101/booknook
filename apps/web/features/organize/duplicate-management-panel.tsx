@@ -96,7 +96,7 @@ export function DuplicateManagementPanel() {
       <div className="flex items-start justify-between gap-4 rounded-2xl border border-black/[0.07] bg-white/60 p-5">
         <div>
           <h2 className="text-base font-semibold text-[#2C2926]"><I18nText>重复作品治理</I18nText></h2>
-          <p className="mt-1 text-sm leading-6 text-[#817B75]"><I18nText>按规范化后的标题与作者识别候选。合并只移动媒介版本、卷册、进度与书架关系，不删除源文件。</I18nText></p>
+          <p className="mt-1 text-sm leading-6 text-[#817B75]"><I18nText>按标题、作者做模糊查重，识别同书多格式（PDF/EPUB）、不同版本与不同翻译的重复文件。合并只移动媒介版本、卷册、进度与书架关系，不删除源文件。</I18nText></p>
         </div>
         <Badge tone={total ? 'amber' : 'green'}>{total} <I18nText>组待处理</I18nText></Badge>
       </div>

@@ -39,6 +39,25 @@ def get_visible_work(db: Session, work_id: str) -> dict[str, Any] | None:
     return entity_as_legacy_dict(work) if work is not None else None
 
 
+def list_works_by_ids(
+    db: Session, work_ids: list[str]
+) -> list[dict[str, Any]]:
+    """Fetch visible works in the given id order (missing ids are dropped)."""
+    if not work_ids:
+        return []
+    works = db.scalars(
+        select(LibraryWork).where(
+            LibraryWork.id.in_(work_ids), LibraryWork.hidden.is_(False)
+        )
+    ).all()
+    by_id = {str(work.id): work for work in works}
+    return [
+        entity_as_legacy_dict(by_id[work_id])
+        for work_id in work_ids
+        if work_id in by_id
+    ]
+
+
 def get_work(db: Session, work_id: str) -> dict[str, Any] | None:
     work = db.get(LibraryWork, work_id)
     return entity_as_legacy_dict(work) if work is not None else None

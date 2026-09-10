@@ -53,10 +53,11 @@ def resolve_non_audio_work_identity(
     parent_signal: BookIdentityDTO | None = None
     parent_filename: str | None = None
     if not is_monitor_root_file:
-        parent_filename = f"{source_path.parent.name.strip()}{source_path.suffix}"
+        parent_name = source_path.parent.name.strip()
+        parent_filename = f"{parent_name}{source_path.suffix}"
         parent_signal = _parent_identity_signal(
             services,
-            parent_name=source_path.parent.name.strip(),
+            parent_name=parent_name,
             parent_filename=parent_filename,
             child_filename=filename,
         )
@@ -165,12 +166,11 @@ def _is_direct_monitor_root_file(
 ) -> bool:
     if monitor_root is None:
         return True
-    resolved_root = monitor_root.resolve()
     try:
-        source_path.relative_to(resolved_root)
+        source_path.relative_to(monitor_root)
     except ValueError:
         return True
-    return source_path.parent == resolved_root
+    return source_path.parent == monitor_root
 
 
 def _has_related_sibling(
@@ -210,7 +210,9 @@ def _usable_author(value: str | None) -> str | None:
 
 
 def _path_fingerprint(path: Path) -> str:
-    return hashlib.sha256(str(path.resolve()).encode("utf-8")).hexdigest()[:24]
+    # Callers pass already-resolved paths; re-resolving would add a realpath
+    # syscall per file on an otherwise pure-string fingerprint.
+    return hashlib.sha256(str(path).encode("utf-8")).hexdigest()[:24]
 
 
 def _title_fingerprint(title: str) -> str:

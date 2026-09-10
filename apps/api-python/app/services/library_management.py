@@ -10,13 +10,17 @@ from functools import wraps
 from hashlib import sha1
 from typing import Any, Concatenate, ParamSpec, TypeVar
 
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.bootstrap.library import smart_shelf_work_ids as _query_smart_shelf_work_ids
 from app.core.time import now_timestamp_ms, timestamp_ms_to_iso, to_timestamp_ms
-from app.models.library import UserMediaHistory
+from app.models.library import LibraryWork, UserMediaHistory
 from app.modules.library.application.commands import execute_library_write
+from app.modules.library.application.duplicate_detection import (
+    build_duplicate_groups,
+    work_records_from_rows,
+)
 from app.modules.library.infrastructure import categories as library_categories
 from app.modules.library.infrastructure import operations as library_operations
 from app.modules.library.infrastructure import works as library_works
@@ -125,26 +129,45 @@ def duplicate_groups_page(
     page: int,
     page_size: int,
 ) -> tuple[list[dict[str, Any]], int, int]:
-    identity_groups, total, clamped_page = library_works.list_duplicate_identity_page(
-        db,
-        page=page,
-        page_size=page_size,
-    )
-    groups: list[dict[str, Any]] = []
-    start = (clamped_page - 1) * page_size
-    for index, group in enumerate(identity_groups, start=start):
-        group_key = f"{group['normalizedTitle']}:{group['normalizedAuthor']}"
-        groups.append(
-            {
-                "id": (
-                    f"duplicate_{index}_{sha1(group_key.encode()).hexdigest()[:12]}"
-                ),
-                "confidence": 0.98,
-                "reasons": ["标题与作者规范化后相同"],
-                "works": group["works"],
-            }
+    """四层查重（精确 + 同标题异作者 + 去版本标记 + 模糊相似度/书名核心）。
+
+    加载全部可见作品后在内存中分组，再做 Python 分页；精确匹配沿用
+    normalized_title/normalized_author 语义，与旧版保持一致。
+    """
+    rows = db.execute(
+        select(
+            LibraryWork.id,
+            LibraryWork.title,
+            LibraryWork.author,
+            LibraryWork.normalized_title,
+            LibraryWork.normalized_author,
         )
-    return groups, total, clamped_page
+        .where(LibraryWork.hidden.is_(False))
+        .order_by(
+            LibraryWork.normalized_title.asc(),
+            LibraryWork.normalized_author.asc(),
+            LibraryWork.id.asc(),
+        )
+    ).all()
+    groups = build_duplicate_groups(work_records_from_rows(rows))
+    total = len(groups)
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    clamped_page = min(max(1, page), total_pages)
+    start = (clamped_page - 1) * page_size
+    paged = groups[start : start + page_size]
+    work_ids = [
+        work_id for group in paged for work_id in group.get("workIds") or []
+    ]
+    work_dicts = library_works.list_works_by_ids(db, work_ids)
+    by_id = {str(work["id"]): work for work in work_dicts}
+    for group in paged:
+        group["works"] = [
+            by_id[work_id]
+            for work_id in group.get("workIds") or []
+            if work_id in by_id
+        ]
+        group.pop("workIds", None)
+    return paged, total, clamped_page
 
 
 def _shelf_snapshot(db: Session, work_ids: list[str]) -> list[dict[str, Any]]:

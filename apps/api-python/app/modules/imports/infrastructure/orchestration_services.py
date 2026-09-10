@@ -190,16 +190,16 @@ class SessionImportOrchestrationServices:
     def list_sibling_files(self, path: Path) -> DirectorySiblingSnapshotDTO:
         resolved = path.resolve()
         try:
-            siblings = tuple(
-                candidate.resolve()
-                for candidate in resolved.parent.iterdir()
-                if candidate.is_file()
-                and not candidate.is_symlink()
-                and candidate.resolve() != resolved
-            )
+            siblings = []
+            for candidate in resolved.parent.iterdir():
+                if not candidate.is_file() or candidate.is_symlink():
+                    continue
+                candidate_resolved = candidate.resolve()
+                if candidate_resolved != resolved:
+                    siblings.append(candidate_resolved)
         except OSError:
             return DirectorySiblingSnapshotDTO(paths=(), complete=False)
-        return DirectorySiblingSnapshotDTO(paths=siblings, complete=True)
+        return DirectorySiblingSnapshotDTO(paths=tuple(siblings), complete=True)
 
     def read_sidecar_metadata(
         self, path: Path, *, directory_fallback: bool

@@ -193,13 +193,23 @@ def _import_audio(
                 }
             )
             volume_specs = volume_groups or [None]
+            # 预计算已解析路径与分组文件集合：避免循环内对每个音轨
+            # 重复 resolve() 系统调用与重建 set（N 个音轨 × G 个分组）
+            resolved_items = [(item, item.path.resolve()) for item in metadata_items]
+            resolved_group_files = [
+                frozenset(path.resolve() for path in group.files)
+                if group is not None
+                else None
+                for group in volume_specs
+            ]
             volumes = []
             for volume_index, group in enumerate(volume_specs):
+                group_files = resolved_group_files[volume_index]
                 group_duration = (
                     sum(
                         item.duration_ms
-                        for item in metadata_items
-                        if item.path.resolve() in set(group.files)
+                        for item, resolved in resolved_items
+                        if resolved in group_files
                     )
                     if group is not None
                     else total_duration
@@ -225,9 +235,8 @@ def _import_audio(
                             "sourceGroupKey": f"{options.origin.lower()}:{bundle_key}",
                             "sizeBytes": sum(
                                 item.path.stat().st_size
-                                for item in metadata_items
-                                if group is None
-                                or item.path.resolve() in set(group.files)
+                                for item, resolved in resolved_items
+                                if group is None or resolved in group_files
                             ),
                             "chapterCount": 0,
                             "durationMs": group_duration,

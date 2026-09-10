@@ -64,7 +64,7 @@ test('develop pushes publish only the isolated develop image channel', () => {
   assert.match(developJob, /needs: validate/u);
   assert.match(developJob, /platforms: linux\/amd64(?:\r?\n)/u);
   assert.doesNotMatch(developJob, /linux\/arm64/u);
-  assert.match(developJob, /tags: rubyfrost101\/booknook:develop/u);
+  assert.match(developJob, /tags: kylenge\/booknook:develop/u);
   assert.doesNotMatch(developJob, /booknook:(?:prod|latest)/u);
   assert.match(
     releaseWorkflow,

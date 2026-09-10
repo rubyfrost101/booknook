@@ -49,16 +49,16 @@ function templateSource(node) {
   return source;
 }
 
-function collectTypeScriptMessages() {
+export function collectTypeScriptMessages(targetRoot = webRoot) {
   const messages = new Set();
-  const files = sourceRoots.flatMap((directory) => listFiles(join(webRoot, directory), new Set(['.ts', '.tsx'])));
+  const files = sourceRoots.flatMap((directory) => listFiles(join(targetRoot, directory), new Set(['.ts', '.tsx'])));
   for (const requestBoundary of ['proxy.ts', 'middleware.ts']) {
-    const requestBoundaryPath = join(webRoot, requestBoundary);
+    const requestBoundaryPath = join(targetRoot, requestBoundary);
     if (existsSync(requestBoundaryPath)) files.push(requestBoundaryPath);
   }
 
   for (const file of files) {
-    if (file.includes(`${join(webRoot, 'i18n', 'messages')}`)) continue;
+    if (file.includes(`${join(targetRoot, 'i18n', 'messages')}`)) continue;
     const source = ts.createSourceFile(
       file,
       readFileSync(file, 'utf8'),
@@ -80,7 +80,9 @@ function collectTypeScriptMessages() {
   return messages;
 }
 
-function collectPythonMessages() {
+const pythonRoot = join(repositoryRoot, 'apps/api-python/app');
+
+export function collectPythonMessages(targetRoot = pythonRoot) {
   const pythonSource = String.raw`
 import ast
 import json
@@ -114,12 +116,11 @@ for path in root.rglob("*.py"):
                 messages.add(value)
 print(json.dumps(sorted(messages), ensure_ascii=False))
 `;
-  const apiRoot = join(repositoryRoot, 'apps/api-python/app');
-  const output = execFileSync('python3', ['-c', pythonSource, apiRoot], { encoding: 'utf8' });
+  const output = execFileSync('python3', ['-c', pythonSource, targetRoot], { encoding: 'utf8' });
   return new Set(JSON.parse(output));
 }
 
-function sortedCatalog(messages) {
+export function sortedCatalog(messages) {
   return Object.fromEntries(
     [...messages]
       .filter((message) => message.trim())
@@ -128,58 +129,57 @@ function sortedCatalog(messages) {
   );
 }
 
-const messages = collectTypeScriptMessages();
-for (const message of collectPythonMessages()) messages.add(message);
-const catalog = sortedCatalog(messages);
-const zhCatalogPath = join(webRoot, 'i18n/messages/zh-CN.json');
-const enCatalogPath = join(webRoot, 'i18n/messages/en-US.json');
-const writeMode = process.argv.includes('--write');
-
-if (writeMode) {
-  writeFileSync(zhCatalogPath, `${JSON.stringify(catalog, null, 2)}\n`);
-  process.stdout.write(`Wrote ${Object.keys(catalog).length} source messages to ${relative(repositoryRoot, zhCatalogPath)}\n`);
-  process.exit(0);
+export function compareCatalogs(catalog, zhCatalog, enCatalog) {
+  const expectedKeys = Object.keys(catalog);
+  return {
+    missingSourceKeys: expectedKeys.filter((key) => !(key in zhCatalog)),
+    missingEnglishKeys: expectedKeys.filter((key) => !(key in enCatalog)),
+    staleSourceKeys: Object.keys(zhCatalog).filter((key) => !(key in catalog)),
+    staleEnglishKeys: Object.keys(enCatalog).filter((key) => !(key in catalog)),
+    mismatchedChineseValues: Object.entries(zhCatalog).filter(([key, value]) => key !== value),
+    untranslatedEnglishValues: Object.entries(enCatalog).filter(([, value]) => cjkPattern.test(value)),
+    mismatchedPlaceholders: expectedKeys.flatMap((key) => {
+      const sourcePlaceholders = Array.from(key.matchAll(interpolationPattern), (match) => match[1]).sort();
+      const translated = enCatalog[key];
+      if (typeof translated !== 'string') return [];
+      const translatedPlaceholders = Array.from(translated.matchAll(interpolationPattern), (match) => match[1]).sort();
+      return JSON.stringify(sourcePlaceholders) === JSON.stringify(translatedPlaceholders)
+        ? []
+        : [{ key, sourcePlaceholders, translatedPlaceholders }];
+    })
+  };
 }
 
-const zhCatalog = JSON.parse(readFileSync(zhCatalogPath, 'utf8'));
-const enCatalog = JSON.parse(readFileSync(enCatalogPath, 'utf8'));
-const expectedKeys = Object.keys(catalog);
-const missingSourceKeys = expectedKeys.filter((key) => !(key in zhCatalog));
-const missingEnglishKeys = expectedKeys.filter((key) => !(key in enCatalog));
-const staleSourceKeys = Object.keys(zhCatalog).filter((key) => !(key in catalog));
-const staleEnglishKeys = Object.keys(enCatalog).filter((key) => !(key in catalog));
-const mismatchedChineseValues = Object.entries(zhCatalog).filter(([key, value]) => key !== value);
-const untranslatedEnglishValues = Object.entries(enCatalog).filter(([, value]) => cjkPattern.test(value));
-const mismatchedPlaceholders = expectedKeys.flatMap((key) => {
-  const sourcePlaceholders = Array.from(key.matchAll(interpolationPattern), (match) => match[1]).sort();
-  const translated = enCatalog[key];
-  if (typeof translated !== 'string') return [];
-  const translatedPlaceholders = Array.from(translated.matchAll(interpolationPattern), (match) => match[1]).sort();
-  return JSON.stringify(sourcePlaceholders) === JSON.stringify(translatedPlaceholders)
-    ? []
-    : [{ key, sourcePlaceholders, translatedPlaceholders }];
-});
-
-if (
-  missingSourceKeys.length
-  || missingEnglishKeys.length
-  || staleSourceKeys.length
-  || staleEnglishKeys.length
-  || mismatchedChineseValues.length
-  || untranslatedEnglishValues.length
-  || mismatchedPlaceholders.length
-) {
-  process.stderr.write(JSON.stringify({
-    missingSourceKeys,
-    missingEnglishKeys,
-    staleSourceKeys,
-    staleEnglishKeys,
-    mismatchedChineseValues,
-    untranslatedEnglishValues,
-    mismatchedPlaceholders
-  }, null, 2));
-  process.stderr.write('\n');
-  process.exit(1);
+function reportHasIssues(report) {
+  return Object.values(report).some((value) => value.length > 0);
 }
 
-process.stdout.write(`Validated ${expectedKeys.length} messages across zh-CN and en-US catalogs\n`);
+function main() {
+  const messages = collectTypeScriptMessages();
+  for (const message of collectPythonMessages()) messages.add(message);
+  const catalog = sortedCatalog(messages);
+  const zhCatalogPath = join(webRoot, 'i18n/messages/zh-CN.json');
+  const enCatalogPath = join(webRoot, 'i18n/messages/en-US.json');
+  const writeMode = process.argv.includes('--write');
+
+  if (writeMode) {
+    writeFileSync(zhCatalogPath, `${JSON.stringify(catalog, null, 2)}\n`);
+    process.stdout.write(`Wrote ${Object.keys(catalog).length} source messages to ${relative(repositoryRoot, zhCatalogPath)}\n`);
+    process.exit(0);
+  }
+
+  const zhCatalog = JSON.parse(readFileSync(zhCatalogPath, 'utf8'));
+  const enCatalog = JSON.parse(readFileSync(enCatalogPath, 'utf8'));
+  const report = compareCatalogs(catalog, zhCatalog, enCatalog);
+  if (reportHasIssues(report)) {
+    process.stderr.write(JSON.stringify(report, null, 2));
+    process.stderr.write('\n');
+    process.exit(1);
+  }
+
+  process.stdout.write(`Validated ${Object.keys(catalog).length} messages across zh-CN and en-US catalogs\n`);
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

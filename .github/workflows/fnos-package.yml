@@ -18,6 +18,7 @@ on:
       - 'apps/api-python/pyproject.toml'
       - 'apps/api-python/uv.lock'
       - 'apps/web/package.json'
+      - 'apps/web/scripts/**'
       - 'pnpm-lock.yaml'
       - '.gitmodules'
       - 'third_party/foliate-js/**'
@@ -60,8 +61,8 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - name: Test strict bilingual release-note validation
-        run: node --test scripts/validate-release-notes.test.mjs
+      - name: Test release-note and workflow-policy regressions
+        run: node --test scripts/validate-release-notes.test.mjs scripts/release-workflow-policy.test.mjs
 
       - name: Validate application version and bilingual release notes
         env:
@@ -95,6 +96,7 @@ jobs:
           pnpm --filter @booknook/web test
           pnpm --filter @booknook/web i18n:check
           pnpm --filter @booknook/web build
+          node --test apps/web/scripts/generate-i18n-catalog.test.mjs
 
       - name: Validate fnOS package templates
         env:

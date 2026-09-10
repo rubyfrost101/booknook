@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "一隅书架 API"
-    app_version: str = "0.1.1"
+    app_version: str = "0.1.2"
     session_secret: str | None = None
     storage_root: str = "/app/storage"
     secure_cookies: bool = False

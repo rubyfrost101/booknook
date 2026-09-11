@@ -1,4 +1,4 @@
-const FRONTEND_RESOURCE_VERSION = '0.1.2';
+const FRONTEND_RESOURCE_VERSION = '0.1.3';
 const VERSION = `booknook-pwa-v${FRONTEND_RESOURCE_VERSION}`;
 const SHELL_CACHE = `${VERSION}-app-shell`;
 const STATIC_CACHE = `${VERSION}-static`;

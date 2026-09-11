@@ -3,6 +3,13 @@
   "repository": "rubyfrost101/booknook",
   "releases": [
     {
+      "version": "0.1.3",
+      "tag": "v0.1.3",
+      "publishedAt": "2026-09-11T00:00:00Z",
+      "notesPath": "v0.1.3.md",
+      "releaseUrl": "https://github.com/rubyfrost101/booknook/releases/tag/v0.1.3"
+    },
+    {
       "version": "0.1.2",
       "tag": "v0.1.2",
       "publishedAt": "2026-09-10T00:00:00Z",

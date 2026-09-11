@@ -20,7 +20,7 @@
 ## 2. 目标
 
 1. 消除识别判脏路径上每次调用重复构造集合的开销（行为完全不变）。
-2. 将 `reader-core` 版本对齐到 `0.1.1`，并纳入 `validate-release-notes.mjs` 的版本一致性校验，防止未来发版漂移。
+2. 将 `reader-core` 版本对齐到 `0.1.2`，并纳入 `validate-release-notes.mjs` 的版本一致性校验，防止未来发版漂移。
 
 ---
 

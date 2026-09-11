@@ -83,6 +83,15 @@ class OrganizeRunsPayload(HttpContractModel):
     runs: list[OrganizeRun]
 
 
+class CreateOrganizeRunRequest(HttpContractModel):
+    work_ids: list[str] = Field(default_factory=list, alias="workIds")
+    limit: int = Field(default=500, ge=1, le=2000)
+
+
+class OrganizeRunPayload(HttpContractModel):
+    run: OrganizeRun
+
+
 class DeletedOrganizeJobPayload(HttpContractModel):
     id: str
     work_id: str = Field(alias="workId")
@@ -180,6 +189,7 @@ class OrganizeJobPayload(HttpContractModel):
 OrganizePolicyResponse = SuccessEnvelope[OrganizePolicyPayload]
 OrganizeCandidatesResponse = SuccessEnvelope[OrganizeCandidatesPayload]
 OrganizeRunsResponse = SuccessEnvelope[OrganizeRunsPayload]
+OrganizeRunResponse = SuccessEnvelope[OrganizeRunPayload]
 DeletedOrganizeJobResponse = SuccessEnvelope[DeletedOrganizeJobPayload]
 OrganizeJobsResponse = SuccessEnvelope[OrganizeJobsPayload]
 PendingOrganizeJobsResponse = SuccessEnvelope[PendingOrganizeJobsPayload]

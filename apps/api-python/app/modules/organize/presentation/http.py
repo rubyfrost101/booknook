@@ -27,6 +27,7 @@ from app.modules.organize.presentation.schemas import (
     OrganizeJobsResponse,
     OrganizeNotFoundError,
     OrganizePolicyResponse,
+    OrganizeRunResponse,
     OrganizeRunsResponse,
     PendingOrganizeJobsResponse,
 )
@@ -36,6 +37,7 @@ from app.services.metadata_file_writeback import (
 )
 from app.services.metadata_provider_registry import list_metadata_providers
 from app.services.organize_scheduler import (
+    create_organize_run,
     delete_organize_job,
     get_organize_policy,
     list_organize_runs,
@@ -244,6 +246,38 @@ def list_organize_runs_route(
         return auth_error
     limit = _positive_int(request.query_params.get("limit"), 20, 100)
     return OrganizeRunsResponse(data={"runs": list_organize_runs(db, limit)})
+
+
+@router.post("/organize/runs")
+async def create_organize_run_route(
+    request: Request,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> Annotated[
+    OrganizeRunResponse, ErrorResponses(OrganizeBadRequestError)
+]:
+    _user, auth_error = _auth(db, request, settings)
+    if auth_error:
+        return auth_error
+    try:
+        payload = await request.json()
+    except (TypeError, ValueError, json.JSONDecodeError):
+        payload = {}
+    try:
+        work_ids = [
+            str(item) for item in payload.get("workIds") or [] if str(item).strip()
+        ]
+        raw_limit = payload.get("limit") or 500
+        limit = min(2000, max(1, int(raw_limit)))
+        run = create_organize_run(
+            db,
+            trigger="MANUAL",
+            work_ids=work_ids or None,
+            limit=limit,
+        )
+        return OrganizeRunResponse(data={"run": run})
+    except (TypeError, ValueError) as exc:
+        raise OrganizeBadRequestError(OrganizeErrorBody(message=str(exc))) from exc
 
 
 @router.get("/organize/jobs")

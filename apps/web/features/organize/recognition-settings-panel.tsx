@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowDown, ArrowUp, Clock3, Save, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowUp, Clock3, Play, Save, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/feedback';
@@ -108,6 +108,26 @@ export function RecognitionSettingsPanel({ compact = false, onSaved }: { compact
 
   useEffect(() => { void load(); }, [load]);
 
+  async function runNow() {
+    if (candidateCount === 0) return;
+    setBusy('run');
+    try {
+      const response = await fetch('/api/organize/runs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workIds: [], limit: 2000 })
+      });
+      const payload = (await response.json()) as { ok: boolean; data?: { run: { queuedCount: number } }; error?: { message: string } };
+      if (!payload.ok || !payload.data?.run) throw new Error(payload.error?.message ?? '发起整理失败');
+      toast.success(`已加入整理队列 ${payload.data.run.queuedCount} 本，将按数据源限流逐本识别`);
+      await load();
+    } catch (reason) {
+      toast.error('操作失败', reason instanceof Error ? reason.message : '请稍后重试');
+    } finally {
+      setBusy('');
+    }
+  }
+
   async function save() {
     setBusy('save');
     try {
@@ -196,7 +216,17 @@ export function RecognitionSettingsPanel({ compact = false, onSaved }: { compact
 
       <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-[#F1D8CF] bg-[#FFF8F5] px-4 py-3 text-sm text-[#8A4C3C] sm:flex-row sm:items-center sm:justify-between">
         <span><I18nText>按当前规则，书库中有 </I18nText><strong>{candidateCount}</strong> <I18nText>本读物可加入整理队列。</I18nText></span>
-        {policy.nextRunAt ? <span className="text-xs"><I18nText>下次执行：</I18nText>{new Date(policy.nextRunAt).toLocaleString(locale)}</span> : null}
+        <div className="flex flex-wrap items-center gap-3">
+          {policy.nextRunAt ? <span className="text-xs"><I18nText>下次执行：</I18nText>{new Date(policy.nextRunAt).toLocaleString(locale)}</span> : null}
+          <Button
+            variant="secondary"
+            icon={Play}
+            loading={busy === 'run'}
+            loadingText={i18nAttribute("入队中")}
+            disabled={loading || busy !== '' || candidateCount === 0}
+            onClick={() => void runNow()}
+          ><I18nText>立即整理候选</I18nText></Button>
+        </div>
       </div>
       <div className="mt-6 flex flex-wrap justify-end gap-3">
         <Button icon={Save} loading={busy === 'save'} loadingText={i18nAttribute("保存中")} onClick={() => void save()}><I18nText>保存设置</I18nText></Button>

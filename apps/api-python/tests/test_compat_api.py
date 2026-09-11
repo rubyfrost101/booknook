@@ -3344,7 +3344,6 @@ def test_organize_jobs_return_frontend_contract(client, db_session):
 
 def test_manual_organize_creation_routes_are_not_exposed(client, db_session):
     _login(client, db_session)
-    assert client.post("/api/organize/runs", json={}).status_code == 405
     assert (
         client.post("/api/organize/jobs", json={"workIds": ["work-1"]}).status_code
         == 405
